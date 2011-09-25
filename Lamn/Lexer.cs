@@ -81,8 +81,8 @@ namespace Lamn
 		}
 
 		Rule[] rules = { new Rule("\\s+",                                          Lexeme.Type.WHITESPACE),
-						 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),   // Multiline comment
-					     new Rule("--.*",                                          Lexeme.Type.COMMENT),   // Short comment
+		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),   // Multiline comment
+		                 new Rule("--.*",                                          Lexeme.Type.COMMENT),   // Short comment
 		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",    Lexeme.Type.STRING),    // Multline string
 		                 new Rule("\"([^\\n\"\\\\]|\\\\.)*\"",                     Lexeme.Type.STRING),    // String with "s
 		                 new Rule("'([^\\n'\\\\]|\\\\.)*'",                        Lexeme.Type.STRING),    // String with 's
@@ -91,7 +91,8 @@ namespace Lamn
 		                 new Rule("(\\.\\.\\.)",                                   Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.)",                                      Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.)",                                         Lexeme.Type.KEYWORD),
-		                 new Rule("\\d+(\\.\\d+)?",                                Lexeme.Type.NUMBER), 
+		                 new Rule("0x[0-9a-fA-F]+",                                Lexeme.Type.NUMBER),    // Hex number
+		                 new Rule("\\d+(\\.\\d+)?([eE](-)?\\d+(\\.\\d+)?)?",       Lexeme.Type.NUMBER),    // Decimal number
 		                 new Rule("[_A-Za-z][_A-Za-z0-9]*",                        Lexeme.Type.NAME) };
 
 		public List<Lexeme> lex(String input)
