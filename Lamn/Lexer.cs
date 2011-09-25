@@ -80,7 +80,7 @@ namespace Lamn
 		}
 
 		Rule[] rules = { new Rule(new Regex("\\G\\s+"),                                          Lexeme.Type.WHITESPACE),
-						 new Rule(new Regex("\\G\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]"),    Lexeme.Type.STRING),    // Multline string
+		                 new Rule(new Regex("\\G\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]"),    Lexeme.Type.STRING),    // Multline string
 		                 new Rule(new Regex("\\G(and|break|do|else|elseif|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)"), Lexeme.Type.KEYWORD),
 		                 new Rule(new Regex("\\G(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)"), Lexeme.Type.KEYWORD),
 		                 new Rule(new Regex("\\G(\\.\\.\\.)"),                                   Lexeme.Type.KEYWORD),
