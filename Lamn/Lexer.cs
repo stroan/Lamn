@@ -33,7 +33,31 @@ namespace Lamn
 
 			private static Lexeme AcceptStringLexeme(String value)
 			{
-				return new Lexeme(value, Type.STRING);
+				Regex doubleQuoteString = new Regex("^\"(?<contents>([^\\n\"\\\\]|\\\\.)*)\"$");
+				Regex singleQuoteString = new Regex("^'(?<contents>([^\\n'\\\\]|\\\\.)*)'$");
+				Regex longString = new Regex("^\\[(?<depth>=*)\\[(?<contents>(.|\\n)*)\\]\\k<depth>\\]$");
+
+				String output = null;
+				Match match = null;
+				if ((match = doubleQuoteString.Match(value)).Success)
+				{
+					output = Regex.Unescape(match.Groups["contents"].Value);
+				}
+				else if ((match = singleQuoteString.Match(value)).Success)
+				{
+					output = Regex.Unescape(match.Groups["contents"].Value);
+				}
+				else if ((match = longString.Match(value)).Success)
+				{
+					output = match.Groups["contents"].Value;
+				}
+
+				if (output == null)
+				{
+					throw new LexException();
+				}
+
+				return new Lexeme(output, Type.STRING);
 			}
 		}
 
