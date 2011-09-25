@@ -79,15 +79,17 @@ namespace Lamn
 			}
 		}
 
-		Rule[] rules = { new Rule(new Regex("\\G\\s+"),                   Lexeme.Type.WHITESPACE),
+		Rule[] rules = { new Rule(new Regex("\\G\\s+"),                                          Lexeme.Type.WHITESPACE),
+						 new Rule(new Regex("\\G\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]"),    Lexeme.Type.STRING),    // Multline string
 		                 new Rule(new Regex("\\G(and|break|do|else|elseif|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)"), Lexeme.Type.KEYWORD),
 		                 new Rule(new Regex("\\G(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)"), Lexeme.Type.KEYWORD),
-		                 new Rule(new Regex("\\G(\\.\\.\\.)"),            Lexeme.Type.KEYWORD),
-		                 new Rule(new Regex("\\G(\\.\\.)"),               Lexeme.Type.KEYWORD),
-		                 new Rule(new Regex("\\G(\\.)"),                  Lexeme.Type.KEYWORD),
-		                 new Rule(new Regex("\\G\\d+(\\.\\d+)?"),         Lexeme.Type.NUMBER), 
-		                 new Rule(new Regex("\\G\"([^\"\\\\]|\\.)*\""),   Lexeme.Type.STRING),
-		                 new Rule(new Regex("\\G[_A-Za-z][_A-Za-z0-9]*"), Lexeme.Type.NAME) };
+		                 new Rule(new Regex("\\G(\\.\\.\\.)"),                                   Lexeme.Type.KEYWORD),
+		                 new Rule(new Regex("\\G(\\.\\.)"),                                      Lexeme.Type.KEYWORD),
+		                 new Rule(new Regex("\\G(\\.)"),                                         Lexeme.Type.KEYWORD),
+		                 new Rule(new Regex("\\G\\d+(\\.\\d+)?"),                                Lexeme.Type.NUMBER), 
+		                 new Rule(new Regex("\\G\"([^\\n\"\\\\]|\\\\.)*\""),                     Lexeme.Type.STRING),    // String with "s
+		                 new Rule(new Regex("\\G'([^\\n'\\\\]|\\\\.)*'"),                        Lexeme.Type.STRING),    // String with 's
+		                 new Rule(new Regex("\\G[_A-Za-z][_A-Za-z0-9]*"),                        Lexeme.Type.NAME) };
 
 		public List<Lexeme> lex(String input)
 		{
