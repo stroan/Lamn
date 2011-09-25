@@ -28,33 +28,49 @@ namespace Lamn
 				LexemeType = type;
 				Value = value;
 			}
+
+			public static Rule.Producer StringProducer { get { return new Rule.Producer(AcceptStringLexeme); } }
+
+			private static Lexeme AcceptStringLexeme(String value)
+			{
+				return new Lexeme(value, Type.STRING);
+			}
 		}
 
 		public class LexException : Exception
 		{
 		}
 
-		private class Rule
+		public class Rule
 		{
+			public delegate Lexeme Producer(String value);
+	
 			private Regex regex;
-			private Lexeme.Type type;
+			private Producer producer;
 
-			public Rule(String regex, Lexeme.Type type)
+			public Rule(String regex, Producer producer)
 			{
+				this.producer = producer;
 				this.regex = new Regex("\\G" + regex);
-				this.type = type;
 			}
+
+			public Rule(String regex, Lexeme.Type type) : this(regex, DefaultProducer(type)) { }
 
 			public Lexeme Match(StringSource source)
 			{
 				Match match = source.TryExtract(regex);
 				if (!match.Success) { return null; }
 
-				return new Lexeme(match.Value, type);
+				return producer(match.Value);
+			}
+
+			private static Producer DefaultProducer(Lexeme.Type type) 
+			{
+				return (value) => new Lexeme(value, type);
 			}
 		}
 
-		private class StringSource
+		public class StringSource
 		{
 			private String RawString { get; set; }
 			private int StartPos { get; set; }
@@ -83,9 +99,9 @@ namespace Lamn
 		Rule[] rules = { new Rule("\\s+",                                          Lexeme.Type.WHITESPACE),
 		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),   // Multiline comment
 		                 new Rule("--.*",                                          Lexeme.Type.COMMENT),   // Short comment
-		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",    Lexeme.Type.STRING),    // Multline string
-		                 new Rule("\"([^\\n\"\\\\]|\\\\.)*\"",                     Lexeme.Type.STRING),    // String with "s
-		                 new Rule("'([^\\n'\\\\]|\\\\.)*'",                        Lexeme.Type.STRING),    // String with 's
+		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",    Lexeme.StringProducer),    // Multline string
+		                 new Rule("\"([^\\n\"\\\\]|\\\\.)*\"",                     Lexeme.StringProducer),    // String with "s
+		                 new Rule("'([^\\n'\\\\]|\\\\.)*'",                        Lexeme.StringProducer),    // String with 's
 		                 new Rule("(and|break|do|else|elseif|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.\\.)",                                   Lexeme.Type.KEYWORD),
