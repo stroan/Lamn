@@ -22,6 +22,7 @@ namespace Lamn
 
 			public Type LexemeType { get; private set; }
 			public String Value { get; private set; }
+			public double? NumberValue { get; private set; }
 
 			public Lexeme(String value, Type type)
 			{
@@ -29,35 +30,9 @@ namespace Lamn
 				Value = value;
 			}
 
-			public static Rule.Producer StringProducer { get { return new Rule.Producer(AcceptStringLexeme); } }
-
-			private static Lexeme AcceptStringLexeme(String value)
+			public Lexeme(String value, double numberValue) : this(value, Type.NUMBER)
 			{
-				Regex doubleQuoteString = new Regex("^\"(?<contents>([^\\n\"\\\\]|\\\\.)*)\"$");
-				Regex singleQuoteString = new Regex("^'(?<contents>([^\\n'\\\\]|\\\\.)*)'$");
-				Regex longString = new Regex("^\\[(?<depth>=*)\\[(?<contents>(.|\\n)*)\\]\\k<depth>\\]$");
-
-				String output = null;
-				Match match = null;
-				if ((match = doubleQuoteString.Match(value)).Success)
-				{
-					output = Regex.Unescape(match.Groups["contents"].Value);
-				}
-				else if ((match = singleQuoteString.Match(value)).Success)
-				{
-					output = Regex.Unescape(match.Groups["contents"].Value);
-				}
-				else if ((match = longString.Match(value)).Success)
-				{
-					output = match.Groups["contents"].Value;
-				}
-
-				if (output == null)
-				{
-					throw new LexException();
-				}
-
-				return new Lexeme(output, Type.STRING);
+				NumberValue = numberValue;
 			}
 		}
 
@@ -92,6 +67,48 @@ namespace Lamn
 			{
 				return (value) => new Lexeme(value, type);
 			}
+
+			#region String producer
+			public static Rule.Producer DoubleStringProducer { get { return new Rule.Producer(AcceptDoubleStringLexeme); } }
+			public static Rule.Producer SingleStringProducer { get { return new Rule.Producer(AcceptSingleStringLexeme); } }
+			public static Rule.Producer LongStringProducer { get { return new Rule.Producer(AcceptLongStringLexeme); } }
+
+			private static Lexeme AcceptDoubleStringLexeme(String value)
+			{
+				Regex doubleQuoteString = new Regex("^\"(?<contents>([^\\n\"\\\\]|\\\\.)*)\"$");
+
+				return new Lexeme(Regex.Unescape(doubleQuoteString.Match(value).Groups["contents"].Value), Lexeme.Type.STRING);
+			}
+
+			private static Lexeme AcceptSingleStringLexeme(String value)
+			{
+				Regex singleQuoteString = new Regex("^'(?<contents>([^\\n'\\\\]|\\\\.)*)'$");
+
+				return new Lexeme(Regex.Unescape(singleQuoteString.Match(value).Groups["contents"].Value), Lexeme.Type.STRING);
+			}
+
+			private static Lexeme AcceptLongStringLexeme(String value)
+			{
+				Regex longString = new Regex("^\\[(?<depth>=*)\\[(?<contents>(.|\\n)*)\\]\\k<depth>\\]$");
+
+				return new Lexeme(longString.Match(value).Groups["contents"].Value, Lexeme.Type.STRING);
+			}
+			#endregion
+
+			#region Number producer
+			public static Rule.Producer HexNumberProducer { get { return new Rule.Producer(AcceptHexNumberLexeme); } }
+			public static Rule.Producer DecimalNumberProducer { get { return new Rule.Producer(AcceptDecimalNumberLexeme); } }
+
+			private static Lexeme AcceptHexNumberLexeme(String value)
+			{
+				return new Lexeme(value, (double)long.Parse(value.Substring(2), System.Globalization.NumberStyles.HexNumber));
+			}
+
+			private static Lexeme AcceptDecimalNumberLexeme(String value)
+			{
+				return new Lexeme(value, Double.Parse(value, System.Globalization.NumberStyles.Float));
+			}
+			#endregion
 		}
 
 		public class StringSource
@@ -121,18 +138,18 @@ namespace Lamn
 		}
 
 		Rule[] rules = { new Rule("\\s+",                                          Lexeme.Type.WHITESPACE),
-		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),   // Multiline comment
-		                 new Rule("--.*",                                          Lexeme.Type.COMMENT),   // Short comment
-		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",    Lexeme.StringProducer),    // Multline string
-		                 new Rule("\"([^\\n\"\\\\]|\\\\.)*\"",                     Lexeme.StringProducer),    // String with "s
-		                 new Rule("'([^\\n'\\\\]|\\\\.)*'",                        Lexeme.StringProducer),    // String with 's
+		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),    // Multiline comment
+		                 new Rule("--.*",                                          Lexeme.Type.COMMENT),    // Short comment
+		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",    Rule.LongStringProducer),    // Multline string
+		                 new Rule("\"([^\\n\"\\\\]|\\\\.)*\"",                     Rule.DoubleStringProducer),    // String with "s
+		                 new Rule("'([^\\n'\\\\]|\\\\.)*'",                        Rule.SingleStringProducer),    // String with 's
 		                 new Rule("(and|break|do|else|elseif|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.\\.)",                                   Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.)",                                      Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.)",                                         Lexeme.Type.KEYWORD),
-		                 new Rule("0x[0-9a-fA-F]+",                                Lexeme.Type.NUMBER),    // Hex number
-		                 new Rule("\\d+(\\.\\d+)?([eE](-)?\\d+(\\.\\d+)?)?",       Lexeme.Type.NUMBER),    // Decimal number
+		                 new Rule("0x[0-9a-fA-F]+",                                Rule.HexNumberProducer),     // Hex number
+		                 new Rule("\\d+(\\.\\d+)?([eE](-)?\\d+(\\.\\d+)?)?",       Rule.DecimalNumberProducer), // Decimal number
 		                 new Rule("[_A-Za-z][_A-Za-z0-9]*",                        Lexeme.Type.NAME) };
 
 		public List<Lexeme> lex(String input)
