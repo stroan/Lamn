@@ -69,18 +69,12 @@ namespace Lamn
 			}
 
 			#region String producer
-			public static Rule.Producer DoubleStringProducer { get { return new Rule.Producer(AcceptDoubleStringLexeme); } }
-			public static Rule.Producer SingleStringProducer { get { return new Rule.Producer(AcceptSingleStringLexeme); } }
+			public static Rule.Producer QuoteStringProducer { get { return new Rule.Producer(AcceptQuoteStringLexeme); } }
 			public static Rule.Producer LongStringProducer { get { return new Rule.Producer(AcceptLongStringLexeme); } }
 
-			private static Lexeme AcceptDoubleStringLexeme(String value)
+			private static Lexeme AcceptQuoteStringLexeme(String value)
 			{
 				return new Lexeme(Regex.Unescape(value.Substring(1,value.Length - 2)), Lexeme.Type.STRING);
-			}
-
-			private static Lexeme AcceptSingleStringLexeme(String value)
-			{
-				return new Lexeme(Regex.Unescape(value.Substring(1, value.Length - 2)), Lexeme.Type.STRING);
 			}
 
 			private static Lexeme AcceptLongStringLexeme(String value)
@@ -137,8 +131,8 @@ namespace Lamn
 		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),    // Multiline comment
 		                 new Rule("--.*",                                          Lexeme.Type.COMMENT),    // Short comment
 		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",    Rule.LongStringProducer),    // Multline string
-		                 new Rule("\"([^\\n\"\\\\]|\\\\(.|\\n))*\"",               Rule.DoubleStringProducer),    // String with "s
-		                 new Rule("'([^\\n'\\\\]|\\\\(.|\\n))*'",                  Rule.SingleStringProducer),    // String with 's
+		                 new Rule("\"([^\\n\"\\\\]|\\\\(.|\\n))*\"",               Rule.QuoteStringProducer),    // String with "s
+		                 new Rule("'([^\\n'\\\\]|\\\\(.|\\n))*'",                  Rule.QuoteStringProducer),    // String with 's
 		                 new Rule("(and|break|do|else|elseif|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.\\.)",                                   Lexeme.Type.KEYWORD),
