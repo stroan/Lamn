@@ -75,23 +75,19 @@ namespace Lamn
 
 			private static Lexeme AcceptDoubleStringLexeme(String value)
 			{
-				Regex doubleQuoteString = new Regex("^\"(?<contents>([^\\n\"\\\\]|\\\\.)*)\"$");
-
-				return new Lexeme(Regex.Unescape(doubleQuoteString.Match(value).Groups["contents"].Value), Lexeme.Type.STRING);
+				return new Lexeme(Regex.Unescape(value.Substring(1,value.Length - 2)), Lexeme.Type.STRING);
 			}
 
 			private static Lexeme AcceptSingleStringLexeme(String value)
 			{
-				Regex singleQuoteString = new Regex("^'(?<contents>([^\\n'\\\\]|\\\\.)*)'$");
-
-				return new Lexeme(Regex.Unescape(singleQuoteString.Match(value).Groups["contents"].Value), Lexeme.Type.STRING);
+				return new Lexeme(Regex.Unescape(value.Substring(1, value.Length - 2)), Lexeme.Type.STRING);
 			}
 
 			private static Lexeme AcceptLongStringLexeme(String value)
 			{
-				Regex longString = new Regex("^\\[(?<depth>=*)\\[(?<contents>(.|\\n)*)\\]\\k<depth>\\]$");
+				int secondOpenBraceIndex = value.IndexOf('[', 1);
 
-				return new Lexeme(longString.Match(value).Groups["contents"].Value, Lexeme.Type.STRING);
+				return new Lexeme(value.Substring(secondOpenBraceIndex, value.Length - (secondOpenBraceIndex * 2)), Lexeme.Type.STRING);
 			}
 			#endregion
 
@@ -141,8 +137,8 @@ namespace Lamn
 		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),    // Multiline comment
 		                 new Rule("--.*",                                          Lexeme.Type.COMMENT),    // Short comment
 		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",    Rule.LongStringProducer),    // Multline string
-		                 new Rule("\"([^\\n\"\\\\]|\\\\.)*\"",                     Rule.DoubleStringProducer),    // String with "s
-		                 new Rule("'([^\\n'\\\\]|\\\\.)*'",                        Rule.SingleStringProducer),    // String with 's
+		                 new Rule("\"([^\\n\"\\\\]|\\\\(.|\\n))*\"",               Rule.DoubleStringProducer),    // String with "s
+		                 new Rule("'([^\\n'\\\\]|\\\\(.|\\n))*'",                  Rule.SingleStringProducer),    // String with 's
 		                 new Rule("(and|break|do|else|elseif|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.\\.)",                                   Lexeme.Type.KEYWORD),
