@@ -5,62 +5,62 @@ using System.Text;
 
 /* LL(1) Lua Grammar (pending)
   
-   chunk ::= {stat [`;´]} [laststat [`;´]]
+    DONE) chunk ::= {stat [`;´]} [laststat [`;´]]
 
-	block ::= chunk
+	DONE) block ::= chunk                                                       
 
-	stat ::=  varlist `=´ explist | 
-		 functioncall | 
-		 do block end | 
-		 while exp do block end | 
-		 repeat block until exp | 
-		 if exp then block {elseif exp then block} [else block] end | 
-		 for Name `=´ exp `,´ exp [`,´ exp] do block end | 
-		 for namelist in explist do block end | 
-		 function funcname funcbody | 
-		 local function Name funcbody | 
-		 local namelist [`=´ explist] 
+	DONE) stat ::=  varlist `=´ explist |                                       
+		      functioncall | 
+		      do block end | 
+		      while exp do block end | 
+		      repeat block until exp | 
+		      if exp then block {elseif exp then block} [else block] end | 
+		      for Name `=´ exp `,´ exp [`,´ exp] do block end | 
+		      for namelist in explist do block end | 
+		      function funcname funcbody | 
+		      local function Name funcbody | 
+		      local namelist [`=´ explist] 
 
-	laststat ::= return [explist] | break
+	DONE) laststat ::= return [explist] | break
 
-	funcname ::= Name {`.´ Name} [`:´ Name]
+	DONE) funcname ::= Name {`.´ Name} [`:´ Name]
 
-	varlist ::= var {`,´ var}
+	DONE) varlist ::= var {`,´ var}
 
-	var ::=  Name | prefixexp `[´ exp `]´ | prefixexp `.´ Name 
+	XXXX) var ::=  Name | prefixexp `[´ exp `]´ | prefixexp `.´ Name 
 
-	namelist ::= Name {`,´ Name}
+	DONE) namelist ::= Name {`,´ Name}
 
-	explist ::= {exp `,´} exp
+	DONE) explist ::= {exp `,´} exp
 
-	exp ::=  nil | false | true | Number | String | `...´ | function | 
+	XXXX) exp ::=  nil | false | true | Number | String | `...´ | function | 
 		 prefixexp | tableconstructor | exp binop exp | unop exp 
 
-	prefixexp ::= var | functioncall | `(´ exp `)´
+	XXXX) prefixexp ::= var | functioncall | `(´ exp `)´
 
-	functioncall ::=  prefixexp args | prefixexp `:´ Name args 
+	XXXX) functioncall ::=  prefixexp args | prefixexp `:´ Name args 
 
-	args ::=  `(´ [explist] `)´ | tableconstructor | String 
+	DONE) args ::=  `(´ [explist] `)´ | tableconstructor | String 
 
-	function ::= function funcbody
+	DONE) function ::= function funcbody
 
-	funcbody ::= `(´ [parlist] `)´ block end
+	DONE) funcbody ::= `(´ [parlist] `)´ block end
 
-	parlist ::= namelist [`,´ `...´] | `...´
+	DONE) parlist ::= namelist [`,´ `...´] | `...´
 
-	tableconstructor ::= `{´ [fieldlist] `}´
+	DONE) tableconstructor ::= `{´ [fieldlist] `}´
 
-	fieldlist ::= field {fieldsep field} [fieldsep]
+	DONE) fieldlist ::= field {fieldsep field} [fieldsep]
 
-	field ::= `[´ exp `]´ `=´ exp | Name `=´ exp | exp
+	????) field ::= `[´ exp `]´ `=´ exp | Name `=´ exp | exp
 
-	fieldsep ::= `,´ | `;´
+	DONE) fieldsep ::= `,´ | `;´
 
-	binop ::= `+´ | `-´ | `*´ | `/´ | `^´ | `%´ | `..´ | 
-		 `<´ | `<=´ | `>´ | `>=´ | `==´ | `~=´ | 
-		 and | or
+	DONE) binop ::= `+´ | `-´ | `*´ | `/´ | `^´ | `%´ | `..´ | 
+		      `<´ | `<=´ | `>´ | `>=´ | `==´ | `~=´ | 
+		      and | or
 
-	unop ::= `-´ | not | `#´
+	DONE) unop ::= `-´ | not | `#´
 */
 
 namespace Lamn
