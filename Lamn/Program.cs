@@ -9,10 +9,13 @@ namespace Lamn
 	{
 		static void Main(string[] args)
 		{
-			String input = "a = 1\nb = 2\nc = a + b";
+			String input2 = "a = a ; b = b ; c, d = c, e";
 
 			Lexer lexer = new Lexer();
-			List<Lexer.Lexeme> output = lexer.lex(input);
+			List<Lexer.Lexeme> output = lexer.lex(input2);
+
+			Parser parser = new Parser();
+			AST outpu2 = parser.Parse(output);
 
 			return;
 		}

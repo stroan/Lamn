@@ -8,6 +8,7 @@ namespace Lamn
 	class Parser
 	{
 		public class ParserException : Exception { }
+		private class NoMatchException : Exception { }
 
 		private class LexemeStream
 		{
@@ -26,6 +27,7 @@ namespace Lamn
 				StateStack = new Stack<int>();
 			}
 
+			#region State stack
 			public void PushState()
 			{
 				StateStack.Push(Position);
@@ -36,7 +38,16 @@ namespace Lamn
 				Position = StateStack.Pop();
 			}
 
-			public Lexer.Lexeme TryPopKeyword(String id)
+			private Lexer.Lexeme PopLexeme()
+			{
+				Lexer.Lexeme lexeme = Head;
+				Position++;
+				return lexeme;
+			}
+			#endregion
+
+			#region Lexeme extraction
+			public Lexer.Lexeme PopKeyword(String id)
 			{
 				PopWhitespaceAndComments();
 
@@ -46,14 +57,31 @@ namespace Lamn
 					return PopLexeme(); 
 				}
 
-				return null;
+				throw new NoMatchException();
 			}
 
-			private Lexer.Lexeme PopLexeme()
+			public Lexer.Lexeme PopName() 
 			{
-				Lexer.Lexeme lexeme = Head;
-				Position++;
-				return lexeme;
+				PopWhitespaceAndComments();
+
+				if (!EOF && Head.LexemeType == Lexer.Lexeme.Type.NAME)
+				{
+					return PopLexeme();
+				}
+				
+				throw new NoMatchException();
+			}
+
+			public Lexer.Lexeme PopEOF()
+			{
+				PopWhitespaceAndComments();
+
+				if (EOF)
+				{
+					return null;
+				}
+
+				throw new NoMatchException();
 			}
 
 			public void PopWhitespaceAndComments()
@@ -64,41 +92,104 @@ namespace Lamn
 					PopLexeme();
 				}
 			}
+			#endregion
 		}
+
+		private delegate A ParseOp<A>(LexemeStream stream);
 
 		public AST Parse(List<Lexer.Lexeme> tokens)
 		{
 			return new AST(ParseChunk(new LexemeStream(tokens.ToArray())));
 		}
 
+		#region Parse Chunk
 		private AST.Chunk ParseChunk(LexemeStream tokens)
 		{
-			tokens.PushState();
-
-			List<AST.Statement> statements = new List<AST.Statement>();
-
-			AST.Statement statement;
-			while ((statement = ParseStatement(tokens)) != null)
-			{
-				statements.Add(statement);
-				tokens.TryPopKeyword(";");
-			}
-
-			tokens.PopState();
-
+			List<AST.Statement> statements = Many(new ParseOp<AST.Statement>(ParseChunkPart))(tokens);
+			tokens.PopEOF();
 			return new AST.Chunk(statements);
 		}
 
+		private AST.Statement ParseChunkPart(LexemeStream tokens)
+		{
+			AST.Statement statement = ParseStatement(tokens);
+			Optional(t => t.PopKeyword(";"))(tokens);
+			return statement;
+		}
+		#endregion
+
 		private AST.Statement ParseStatement(LexemeStream tokens)
 		{
-			Lexer.Lexeme lexeme = tokens.TryPopKeyword("not");
-
-			if (lexeme == null)
-			{
-				return null;
-			}
-
-			return new AST.Statement(lexeme);
+			return ParseAssignmentStatement(tokens);
 		}
+
+		private AST.AssignmentStatement ParseAssignmentStatement(LexemeStream tokens)
+		{
+			List<Lexer.Lexeme> vars = SeperatedList1(new ParseOp<Lexer.Lexeme>(ParseVar), new ParseOp<Lexer.Lexeme>(ParseComma))(tokens);
+			tokens.PopKeyword("=");
+			List<Lexer.Lexeme> exps = SeperatedList1(new ParseOp<Lexer.Lexeme>(ParseVar), new ParseOp<Lexer.Lexeme>(ParseComma))(tokens);
+
+			return new AST.AssignmentStatement(vars, exps);
+		}
+
+		private Lexer.Lexeme ParseVar(LexemeStream tokens) 
+		{
+			return tokens.PopName();
+		}
+
+		private Lexer.Lexeme ParseComma(LexemeStream tokens)
+		{
+			return tokens.PopKeyword(",");
+		}
+
+		#region Parser Combinators
+		private ParseOp<A> Optional<A>(ParseOp<A> op)
+		{
+			return tokens =>
+			{
+				try
+				{
+					return op(tokens);
+				}
+				catch (NoMatchException)
+				{
+					return default(A);
+				}
+			};
+		}
+
+		private ParseOp<List<A>> Many<A>(ParseOp<A> op)
+		{
+			return tokens =>
+			{
+				List<A> outputList = new List<A>();
+
+				while (true)
+				{
+					try
+					{
+						outputList.Add(op(tokens));
+					}
+					catch (NoMatchException)
+					{
+						break;
+					}
+				}
+
+				return outputList;
+			};
+		}
+
+		private ParseOp<List<A>> SeperatedList1<A, B>(ParseOp<A> valueOp, ParseOp<B> sepOp)
+		{
+			return tokens =>
+			{
+				List<A> values = new List<A>();
+				values.Add(valueOp(tokens));
+				values.AddRange(Many(t => {sepOp(t); return valueOp(t);})(tokens));
+				return values;
+			};
+		}
+		#endregion
 	}
 }

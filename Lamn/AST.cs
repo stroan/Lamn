@@ -17,8 +17,18 @@ namespace Lamn
 			}
 		}
 
-		public class Statement {
-		    public Statement(Lexer.Lexeme lexeme) { }
+		public class Statement { }
+
+		public class AssignmentStatement : Statement
+		{
+			public List<Lexer.Lexeme> Variables { get; private set; }
+			public List<Lexer.Lexeme> Expressions { get; private set; }
+
+			public AssignmentStatement(List<Lexer.Lexeme> variables, List<Lexer.Lexeme> expressions)
+			{
+				Variables = variables;
+				Expressions = expressions;
+			}
 		}
 
 		public Chunk Body { get; private set; }
