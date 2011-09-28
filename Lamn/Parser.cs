@@ -3,173 +3,66 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-/* LL(1) Lua Grammar (pending)
-  
-	DONE) chunk ::= {stat [`;´]} [laststat [`;´]]
-
-	DONE) block ::= chunk                                                       
-
-        =============================================================================================
-	XXXX) stat ::=  varlist `=´ explist |                                         (????)
-		      functioncall |                                                  (????)
-		      do block end |                                                  (do)
-		      while exp do block end |                                        (while)
-		      repeat block until exp |                                        (repeat)
-		      if exp then block {elseif exp then block} [else block] end |    (if)
-		      for forclause do block end |                                    (for)
-		      function funcname funcbody |                                    (function)
-		      local localdecl |                                               (local)
-		      
-        =============================================================================================
-        NEW) localdecl ::= function Name funcbody |                                   (function)
-                           namelist [`=` explist]                                     (Name)
-                                                                                      --------
-                                                                                      (function, Name)
-                                                                                      
-        =============================================================================================
-        NEW) forclause ::= Name forrest                                               (Name)
-                                                                                      --------
-                                                                                      (Name)
-        
-        =============================================================================================
-        NEW) forrest ::= `=´ exp `,´ exp [`,´ exp] |                                  (=)
-                         `,´ nameList in explist |                                    (,)
-                         in explist                                                   (in)
-                                                                                      --------
-                                                                                      (=, `,´, in)
-
-        =============================================================================================
-	DONE) laststat ::= return [explist] |                                         (return)
-	                   break                                                      (break)
-	                                                                              --------
-	                                                                              (return, break)
-
-        =============================================================================================
-	DONE) funcname ::= Name {`.´ Name} [`:´ Name]                                 (Name)
-                                                                                      --------
-                                                                                      (Name)
-                                                                                      
-        =============================================================================================
-	DONE) varlist ::= var {`,´ var}
-
-        =============================================================================================
-	XXXX) var ::=  Name | 
-	               prefixexp `[´ exp `]´ | 
-	               prefixexp `.´ Name 
-
-        =============================================================================================
-	DONE) namelist ::= Name {`,´ Name}                                            (Name)
-	                                                                              --------
-	                                                                              (Name)
-
-        =============================================================================================
-	DONE) explist ::= {exp `,´} exp                                               (nil, false, true, Number,
-	                                                                              String, `...´, function,
-	                                                                              `{´, NAME, `(´, unop)
-
-        =============================================================================================
-	CHANGED) exp ::=  subexpr                                                     (nil, false, true, Number,
-	                                                                              String, `...´, function,
-	                                                                              `{´, NAME, `(´, unop)
-	                                                                              --------
-	                                                                              (nil, false, true, Number,
-	                                                                              String, `...´, function,
-	                                                                              `{´, NAME, `(´, unop)
-		 
-        =============================================================================================
-	NEW) subexpr ::= simpleexp { binop subexpr } |                                (nil, false, true, Number,
-	                                                                              String, `...´, function,
-	                                                                              `{´, NAME, `(´)
-	                 unop subexpr { binop subexpr }                               (unop)
-	                                                                              --------
-	                                                                              (nil, false, true, Number,
-	                                                                              String, `...´, function,
-	                                                                              `{´, NAME, `(´, unop)
-		 
-        =============================================================================================
-	NEW) simpleexp ::= nil |                                                      (nil)
-	                   false |                                                    (false)
-	                   true |                                                     (true)
-	                   Number |                                                   (Number)
-	                   String |                                                   (String)
-	                   `...´ |                                                    (`...´)
-	                   function |                                                 (function)
-	                   tableconstructor |                                         (`{´)
-	                   primaryexp                                                 (NAME, `(´)
-	                                                                              --------
-	                                                                              (nil, false, true, Number,
-	                                                                              String, `...´, function,
-	                                                                              `{´, NAME, `(´)
-	                   
-        =============================================================================================
-	NEW) primaryexp ::= prefixexp { primaryexprest }                              (NAME, `(´)
-	                                                                              --------
-	                                                                              (NAME, `(´)
-	
-        =============================================================================================
-	NEW) primaryexprest ::= `.´ NAME |                                            (`.´)
-	                        `[´ exp `]´ |                                         (`[´)
-	                        `:´ NAME funcargs |                                   (`:´)
-	                        args                                                  (`(´,`{´,String)
-	                                                                              --------
-	                                                                              (`.´,`[´,`:´,`(´,`{´,String)
-
-        =============================================================================================
-	CHANGED) prefixexp ::= NAME |                                                 (NAME)
-	                       `(´ exp `)´                                            (`(´)
-	                                                                              --------
-	                                                                              (NAME, `(´)
-
-        =============================================================================================
-	DONE) functioncall ::=  prefixexp functioncalltail                            (NAME, `(´)
-	                                                                              --------
-	                                                                              (NAME, `(´)
-	
-        =============================================================================================
-	NEW) functioncalltail ::= args |                                              (`(´,`{´,String)
-	                          `:´ Name args                                       (`:´)
-	                                                                              --------
-	                                                                              (`(´,`{´,String,`:´)
-
-        =============================================================================================
-	DONE) args ::=  `(´ [explist] `)´ |                                           (`(´)
-	                tableconstructor |                                            (`{´)
-	                String                                                        (String)
-	                                                                              --------
-	                                                                              (`(´,`{´,String)
-
-        =============================================================================================
-	DONE) function ::= function funcbody                                          (function)
-	                                                                              --------
-	                                                                              (function)
-
-        =============================================================================================
-	DONE) funcbody ::= `(´ [parlist] `)´ block end
-
-        =============================================================================================
-	DONE) parlist ::= namelist [`,´ `...´] | `...´
-
-        =============================================================================================
-	DONE) tableconstructor ::= `{´ [fieldlist] `}´                                (`{´)
-	                                                                              --------
-	                                                                              (`{´)
-
-        =============================================================================================
-	????) fieldlist ::= field {fieldsep field} [fieldsep]
-
-        =============================================================================================
-	????) field ::= `[´ exp `]´ `=´ exp | Name `=´ exp | exp
-
-        =============================================================================================
-	DONE) fieldsep ::= `,´ | `;´
-
-        =============================================================================================
-	DONE) binop ::= `+´ | `-´ | `*´ | `/´ | `^´ | `%´ | `..´ | 
-		      `<´ | `<=´ | `>´ | `>=´ | `==´ | `~=´ | 
-		      and | or
-
-        =============================================================================================
-	DONE) unop ::= `-´ | not | `#´
+/* Grammar as defined in lparser.c
+ * 
+ * chunk -> { stat [';'] }
+ * block -> chunk
+ * 
+ * stat -> ifstat |
+ *         whilestat |
+ *         DO block END |
+ *         forstat |
+ *         repeatstat |
+ *         funcstat |
+ *         localstat | localfunc |   <- lookahead for NAME | function
+ *         exprstat
+ * 
+ * ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END
+ * test_then_block -> [IF | ELSEIF] cond THEN block
+ * 
+ * whilestat -> WHILE cond DO block END
+ * 
+ * forstat -> FOR (fornum | forlist) END       <- lookahead for '='|','
+ * forbody -> DO block
+ * fornum -> NAME = exp1,exp1[,exp1] forbody
+ * forlist -> NAME {,NAME} IN explist1 forbody
+ * 
+ * repeatstat -> REPEAT block UNTIL cond
+ * 
+ * funcstat -> FUNCTION funcname body
+ * funcname -> NAME {field} [`:' NAME]
+ * field -> ['.' | ':'] NAME
+ * 
+ * localstat -> LOCAL NAME {`,' NAME} [`=' explist1]
+ * 
+ * retstat -> RETURN explist
+ * 
+ * localfunc -> LOCAL function NAME body
+ * body ->  `(' parlist `)' chunk END
+ * parlist -> [ param { `,' param } ]
+ * 
+ * exprstat -> func | assignment    <- e = primaryexp if is_function_call(e) { e assignment } else { e }
+ * assignment -> `,' primaryexp assignment |
+ *               `=' explist1
+ * explist1 -> expr { `,' expr }
+ * 
+ * cond -> exp                      <- if exp = nil { false } else { exp }
+ * 
+ * subexpr -> (simpleexp | unop subexpr) { binop subexpr }  <- Expanding binop until priority is less or equal to the priovious op>
+ * simpleexp -> NUMBER | STRING | NIL | true | false | ... |
+ *                 constructor | FUNCTION body | primaryexp
+ * primaryexp -> prefixexp { `.' NAME | index | `:' NAME funcargs | funcargs }
+ * prefixexp -> NAME | '(' expr ')'
+ * funcargs -> `(' [ explist1 ] `)' |
+ *             constructor |
+ *             STRING
+ * 
+ * constructor -> '{' { confield [fieldsep] } [fieldsep] '}'
+ * confield -> recfield | expr    <- lookahead for '='
+ * recfield -> (NAME | index) = exp1
+ * fieldsep = ';' | ','
+ * 
+ * index -> '[' expr ']'
 */
 
 namespace Lamn
