@@ -14,8 +14,8 @@ namespace Lamn
 			Lexer lexer = new Lexer();
 			List<Lexer.Lexeme> output = lexer.lex(input2);
 
-			Parser parser = new Parser();
-			AST outpu2 = parser.Parse(output);
+			Parser parser = new Parser(output);
+			AST outpu2 = parser.Parse();
 
 			return;
 		}

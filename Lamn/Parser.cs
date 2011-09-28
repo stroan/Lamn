@@ -15,6 +15,8 @@ using System.Text;
  *         repeatstat |
  *         funcstat |
  *         localstat | localfunc |   <- lookahead for NAME | function
+ *         retstat |
+ *         BREAK |
  *         exprstat
  * 
  * ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END
@@ -48,6 +50,7 @@ using System.Text;
  * 
  * cond -> exp                      <- if exp = nil { false } else { exp }
  * 
+ * expr -> subexpr
  * subexpr -> (simpleexp | unop subexpr) { binop subexpr }  <- Expanding binop until priority is less or equal to the priovious op>
  * simpleexp -> NUMBER | STRING | NIL | true | false | ... |
  *                 constructor | FUNCTION body | primaryexp
@@ -69,81 +72,32 @@ namespace Lamn
 {
 	class Parser
 	{
-		public class ParserException : Exception { }
-		private class NoMatchException : Exception { }
-
 		private class LexemeStream
 		{
 
 			private Lexer.Lexeme[] Source { get; set; }
 			private int Position { get; set; }
-			private Stack<int> StateStack { get; set; }
 
 			public bool EOF { get { return Position == Source.Length; } }
 			public Lexer.Lexeme Head { get { return Source[Position]; } }
+			public Lexer.Lexeme Lookahead { get { return Source[Position + 1]; } }
 
 			public LexemeStream(Lexer.Lexeme[] source)
 			{
 				Source = source;
 				Position = 0;
-				StateStack = new Stack<int>();
-			}
 
-			#region State stack
-			public void PushState()
-			{
-				StateStack.Push(Position);
-			}
-
-			public void PopState()
-			{
-				Position = StateStack.Pop();
+				PopWhitespaceAndComments();
 			}
 
 			private Lexer.Lexeme PopLexeme()
 			{
 				Lexer.Lexeme lexeme = Head;
 				Position++;
+
+				PopWhitespaceAndComments();
+
 				return lexeme;
-			}
-			#endregion
-
-			#region Lexeme extraction
-			public Lexer.Lexeme PopKeyword(String id)
-			{
-				PopWhitespaceAndComments();
-
-				if (!EOF && Head.LexemeType == Lexer.Lexeme.Type.KEYWORD &&
-					Head.Value.Equals(id))
-				{
-					return PopLexeme(); 
-				}
-
-				throw new NoMatchException();
-			}
-
-			public Lexer.Lexeme PopName() 
-			{
-				PopWhitespaceAndComments();
-
-				if (!EOF && Head.LexemeType == Lexer.Lexeme.Type.NAME)
-				{
-					return PopLexeme();
-				}
-				
-				throw new NoMatchException();
-			}
-
-			public Lexer.Lexeme PopEOF()
-			{
-				PopWhitespaceAndComments();
-
-				if (EOF)
-				{
-					return null;
-				}
-
-				throw new NoMatchException();
 			}
 
 			public void PopWhitespaceAndComments()
@@ -151,107 +105,21 @@ namespace Lamn
 				while (!EOF && (Head.LexemeType == Lexer.Lexeme.Type.COMMENT ||
 								Head.LexemeType == Lexer.Lexeme.Type.WHITESPACE))
 				{
-					PopLexeme();
+					Position++;
 				}
 			}
-			#endregion
 		}
 
-		private delegate A ParseOp<A>(LexemeStream stream);
+		private LexemeStream Stream { get; set; }
 
-		public AST Parse(List<Lexer.Lexeme> tokens)
+		public Parser(List<Lexer.Lexeme> input)
 		{
-			return new AST(ParseChunk(new LexemeStream(tokens.ToArray())));
+			Stream = new LexemeStream(input.ToArray());
 		}
 
-		#region Parse Chunk
-		private AST.Chunk ParseChunk(LexemeStream tokens)
+		public AST Parse()
 		{
-			List<AST.Statement> statements = Many(new ParseOp<AST.Statement>(ParseChunkPart))(tokens);
-			tokens.PopEOF();
-			return new AST.Chunk(statements);
+			return null;
 		}
-
-		private AST.Statement ParseChunkPart(LexemeStream tokens)
-		{
-			AST.Statement statement = ParseStatement(tokens);
-			Optional(t => t.PopKeyword(";"))(tokens);
-			return statement;
-		}
-		#endregion
-
-		private AST.Statement ParseStatement(LexemeStream tokens)
-		{
-			return ParseAssignmentStatement(tokens);
-		}
-
-		private AST.AssignmentStatement ParseAssignmentStatement(LexemeStream tokens)
-		{
-			List<Lexer.Lexeme> vars = SeperatedList1(new ParseOp<Lexer.Lexeme>(ParseVar), new ParseOp<Lexer.Lexeme>(ParseComma))(tokens);
-			tokens.PopKeyword("=");
-			List<Lexer.Lexeme> exps = SeperatedList1(new ParseOp<Lexer.Lexeme>(ParseVar), new ParseOp<Lexer.Lexeme>(ParseComma))(tokens);
-
-			return new AST.AssignmentStatement(vars, exps);
-		}
-
-		private Lexer.Lexeme ParseVar(LexemeStream tokens) 
-		{
-			return tokens.PopName();
-		}
-
-		private Lexer.Lexeme ParseComma(LexemeStream tokens)
-		{
-			return tokens.PopKeyword(",");
-		}
-
-		#region Parser Combinators
-		private ParseOp<A> Optional<A>(ParseOp<A> op)
-		{
-			return tokens =>
-			{
-				try
-				{
-					return op(tokens);
-				}
-				catch (NoMatchException)
-				{
-					return default(A);
-				}
-			};
-		}
-
-		private ParseOp<List<A>> Many<A>(ParseOp<A> op)
-		{
-			return tokens =>
-			{
-				List<A> outputList = new List<A>();
-
-				while (true)
-				{
-					try
-					{
-						outputList.Add(op(tokens));
-					}
-					catch (NoMatchException)
-					{
-						break;
-					}
-				}
-
-				return outputList;
-			};
-		}
-
-		private ParseOp<List<A>> SeperatedList1<A, B>(ParseOp<A> valueOp, ParseOp<B> sepOp)
-		{
-			return tokens =>
-			{
-				List<A> values = new List<A>();
-				values.Add(valueOp(tokens));
-				values.AddRange(Many(t => {sepOp(t); return valueOp(t);})(tokens));
-				return values;
-			};
-		}
-		#endregion
 	}
 }
