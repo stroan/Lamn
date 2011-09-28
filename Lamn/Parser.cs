@@ -61,7 +61,7 @@ using System.Text;
 	                                                                              (Name)
 
         =============================================================================================
-	DONE) explist ::= {exp `,´} exp
+	????) explist ::= {exp `,´} exp
 
         =============================================================================================
 	XXXX) exp ::=  nil | false | true | Number | String | `...´ | function | 
@@ -89,7 +89,7 @@ using System.Text;
 	DONE) tableconstructor ::= `{´ [fieldlist] `}´
 
         =============================================================================================
-	DONE) fieldlist ::= field {fieldsep field} [fieldsep]
+	????) fieldlist ::= field {fieldsep field} [fieldsep]
 
         =============================================================================================
 	????) field ::= `[´ exp `]´ `=´ exp | Name `=´ exp | exp
