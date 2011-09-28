@@ -53,7 +53,9 @@ using System.Text;
 	DONE) varlist ::= var {`,´ var}
 
         =============================================================================================
-	XXXX) var ::=  Name | prefixexp `[´ exp `]´ | prefixexp `.´ Name 
+	XXXX) var ::=  Name | 
+	               prefixexp `[´ exp `]´ | 
+	               prefixexp `.´ Name 
 
         =============================================================================================
 	DONE) namelist ::= Name {`,´ Name}                                            (Name)
@@ -61,23 +63,85 @@ using System.Text;
 	                                                                              (Name)
 
         =============================================================================================
-	????) explist ::= {exp `,´} exp
+	DONE) explist ::= {exp `,´} exp                                               (nil, false, true, Number,
+	                                                                              String, `...´, function,
+	                                                                              `{´, NAME, `(´, unop)
 
         =============================================================================================
-	XXXX) exp ::=  nil | false | true | Number | String | `...´ | function | 
-		 prefixexp | tableconstructor | exp binop exp | unop exp 
+	CHANGED) exp ::=  subexpr                                                     (nil, false, true, Number,
+	                                                                              String, `...´, function,
+	                                                                              `{´, NAME, `(´, unop)
+	                                                                              --------
+	                                                                              (nil, false, true, Number,
+	                                                                              String, `...´, function,
+	                                                                              `{´, NAME, `(´, unop)
+		 
+        =============================================================================================
+	NEW) subexpr ::= simpleexp { binop subexpr } |                                (nil, false, true, Number,
+	                                                                              String, `...´, function,
+	                                                                              `{´, NAME, `(´)
+	                 unop subexpr { binop subexpr }                               (unop)
+	                                                                              --------
+	                                                                              (nil, false, true, Number,
+	                                                                              String, `...´, function,
+	                                                                              `{´, NAME, `(´, unop)
+		 
+        =============================================================================================
+	NEW) simpleexp ::= nil |                                                      (nil)
+	                   false |                                                    (false)
+	                   true |                                                     (true)
+	                   Number |                                                   (Number)
+	                   String |                                                   (String)
+	                   `...´ |                                                    (`...´)
+	                   function |                                                 (function)
+	                   tableconstructor |                                         (`{´)
+	                   primaryexp                                                 (NAME, `(´)
+	                                                                              --------
+	                                                                              (nil, false, true, Number,
+	                                                                              String, `...´, function,
+	                                                                              `{´, NAME, `(´)
+	                   
+        =============================================================================================
+	NEW) primaryexp ::= prefixexp { primaryexprest }                              (NAME, `(´)
+	                                                                              --------
+	                                                                              (NAME, `(´)
+	
+        =============================================================================================
+	NEW) primaryexprest ::= `.´ NAME |                                            (`.´)
+	                        `[´ exp `]´ |                                         (`[´)
+	                        `:´ NAME funcargs |                                   (`:´)
+	                        args                                                  (`(´,`{´,String)
+	                                                                              --------
+	                                                                              (`.´,`[´,`:´,`(´,`{´,String)
 
         =============================================================================================
-	XXXX) prefixexp ::= var | functioncall | `(´ exp `)´
+	CHANGED) prefixexp ::= NAME |                                                 (NAME)
+	                       `(´ exp `)´                                            (`(´)
+	                                                                              --------
+	                                                                              (NAME, `(´)
 
         =============================================================================================
-	XXXX) functioncall ::=  prefixexp args | prefixexp `:´ Name args 
+	DONE) functioncall ::=  prefixexp functioncalltail                            (NAME, `(´)
+	                                                                              --------
+	                                                                              (NAME, `(´)
+	
+        =============================================================================================
+	NEW) functioncalltail ::= args |                                              (`(´,`{´,String)
+	                          `:´ Name args                                       (`:´)
+	                                                                              --------
+	                                                                              (`(´,`{´,String,`:´)
 
         =============================================================================================
-	DONE) args ::=  `(´ [explist] `)´ | tableconstructor | String 
+	DONE) args ::=  `(´ [explist] `)´ |                                           (`(´)
+	                tableconstructor |                                            (`{´)
+	                String                                                        (String)
+	                                                                              --------
+	                                                                              (`(´,`{´,String)
 
         =============================================================================================
-	DONE) function ::= function funcbody
+	DONE) function ::= function funcbody                                          (function)
+	                                                                              --------
+	                                                                              (function)
 
         =============================================================================================
 	DONE) funcbody ::= `(´ [parlist] `)´ block end
@@ -86,7 +150,9 @@ using System.Text;
 	DONE) parlist ::= namelist [`,´ `...´] | `...´
 
         =============================================================================================
-	DONE) tableconstructor ::= `{´ [fieldlist] `}´
+	DONE) tableconstructor ::= `{´ [fieldlist] `}´                                (`{´)
+	                                                                              --------
+	                                                                              (`{´)
 
         =============================================================================================
 	????) fieldlist ::= field {fieldsep field} [fieldsep]
