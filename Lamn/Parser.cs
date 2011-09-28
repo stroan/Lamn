@@ -5,61 +5,104 @@ using System.Text;
 
 /* LL(1) Lua Grammar (pending)
   
-    DONE) chunk ::= {stat [`;´]} [laststat [`;´]]
+	DONE) chunk ::= {stat [`;´]} [laststat [`;´]]
 
 	DONE) block ::= chunk                                                       
 
-	DONE) stat ::=  varlist `=´ explist |                                       
-		      functioncall | 
-		      do block end | 
-		      while exp do block end | 
-		      repeat block until exp | 
-		      if exp then block {elseif exp then block} [else block] end | 
-		      for Name `=´ exp `,´ exp [`,´ exp] do block end | 
-		      for namelist in explist do block end | 
-		      function funcname funcbody | 
-		      local function Name funcbody | 
-		      local namelist [`=´ explist] 
+        =============================================================================================
+	XXXX) stat ::=  varlist `=´ explist |                                         (????)
+		      functioncall |                                                  (????)
+		      do block end |                                                  (do)
+		      while exp do block end |                                        (while)
+		      repeat block until exp |                                        (repeat)
+		      if exp then block {elseif exp then block} [else block] end |    (if)
+		      for forclause do block end |                                    (for)
+		      function funcname funcbody |                                    (function)
+		      local localdecl |                                               (local)
+		      
+        =============================================================================================
+        NEW) localdecl ::= function Name funcbody |                                   (function)
+                           namelist [`=` explist]                                     (Name)
+                                                                                      --------
+                                                                                      (function, Name)
+                                                                                      
+        =============================================================================================
+        NEW) forclause ::= Name forrest                                               (Name)
+                                                                                      --------
+                                                                                      (Name)
+        
+        =============================================================================================
+        NEW) forrest ::= `=´ exp `,´ exp [`,´ exp] |                                  (=)
+                         `,´ nameList in explist |                                    (,)
+                         in explist                                                   (in)
+                                                                                      --------
+                                                                                      (=, `,´, in)
 
-	DONE) laststat ::= return [explist] | break
+        =============================================================================================
+	DONE) laststat ::= return [explist] |                                         (return)
+	                   break                                                      (break)
+	                                                                              --------
+	                                                                              (return, break)
 
-	DONE) funcname ::= Name {`.´ Name} [`:´ Name]
-
+        =============================================================================================
+	DONE) funcname ::= Name {`.´ Name} [`:´ Name]                                 (Name)
+                                                                                      --------
+                                                                                      (Name)
+                                                                                      
+        =============================================================================================
 	DONE) varlist ::= var {`,´ var}
 
+        =============================================================================================
 	XXXX) var ::=  Name | prefixexp `[´ exp `]´ | prefixexp `.´ Name 
 
-	DONE) namelist ::= Name {`,´ Name}
+        =============================================================================================
+	DONE) namelist ::= Name {`,´ Name}                                            (Name)
+	                                                                              --------
+	                                                                              (Name)
 
+        =============================================================================================
 	DONE) explist ::= {exp `,´} exp
 
+        =============================================================================================
 	XXXX) exp ::=  nil | false | true | Number | String | `...´ | function | 
 		 prefixexp | tableconstructor | exp binop exp | unop exp 
 
+        =============================================================================================
 	XXXX) prefixexp ::= var | functioncall | `(´ exp `)´
 
+        =============================================================================================
 	XXXX) functioncall ::=  prefixexp args | prefixexp `:´ Name args 
 
+        =============================================================================================
 	DONE) args ::=  `(´ [explist] `)´ | tableconstructor | String 
 
+        =============================================================================================
 	DONE) function ::= function funcbody
 
+        =============================================================================================
 	DONE) funcbody ::= `(´ [parlist] `)´ block end
 
+        =============================================================================================
 	DONE) parlist ::= namelist [`,´ `...´] | `...´
 
+        =============================================================================================
 	DONE) tableconstructor ::= `{´ [fieldlist] `}´
 
+        =============================================================================================
 	DONE) fieldlist ::= field {fieldsep field} [fieldsep]
 
+        =============================================================================================
 	????) field ::= `[´ exp `]´ `=´ exp | Name `=´ exp | exp
 
+        =============================================================================================
 	DONE) fieldsep ::= `,´ | `;´
 
+        =============================================================================================
 	DONE) binop ::= `+´ | `-´ | `*´ | `/´ | `^´ | `%´ | `..´ | 
 		      `<´ | `<=´ | `>´ | `>=´ | `==´ | `~=´ | 
 		      and | or
 
+        =============================================================================================
 	DONE) unop ::= `-´ | not | `#´
 */
 
