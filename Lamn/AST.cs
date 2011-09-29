@@ -135,6 +135,42 @@ namespace Lamn
 			}
 		}
 
+		public class LookupExpression : Expression
+		{
+			public Expression Obj { get; private set; }
+			public String Name { get; private set; }
+
+			public LookupExpression(Expression obj, String name)
+			{
+				Obj = obj;
+				Name = name;
+			}
+		}
+
+		public class IndexExpression : Expression
+		{
+			public Expression Obj { get; private set; }
+			public Expression Index { get; private set; }
+
+			public IndexExpression(Expression obj, Expression index)
+			{
+				Obj = obj;
+				Index = index;
+			}
+		}
+
+		public class FunctionApplicationExpression : Expression
+		{
+			public Expression Obj { get; private set; }
+			public List<AST.Expression> Args { get; private set; }
+
+			public FunctionApplicationExpression(Expression obj, List<AST.Expression> args)
+			{
+				Obj = obj;
+				Args = args;
+			}
+		}
+
 		public class Constructor : Expression
 		{
 			public List<ConField> Fields { get; private set; }

@@ -227,10 +227,14 @@ namespace Lamn
 
 		private AST.Statement ParseStatement()
 		{
-			if (Stream.IsKeyword("local")) {
+			if (Stream.IsKeyword("local"))
+			{
 				return ParseLocalStatement();
 			}
-			return null;
+			else
+			{
+				throw new ParserException();
+			}
 		}
 
 		/* localstat -> LOCAL function NAME body |
@@ -370,6 +374,7 @@ namespace Lamn
 			}
 
 			/* { binop subexpr } <- Expanding binop until priority is less or equal to the priovious op> */
+			/* TODO: THIS */
 
 			return expr;
 		}
@@ -437,6 +442,7 @@ namespace Lamn
 			if (Stream.IsName())
 			{
 				prefixExp = new AST.NameExpression(Stream.GetName().Value);
+				Stream.MoveNext();
 			}
 			else if (Stream.IsKeyword("("))
 			{
@@ -446,10 +452,91 @@ namespace Lamn
 
 				Stream.GetKeywordAndMove(")");
 			}
+			else
+			{
+				throw new ParserException();
+			}
 
-			// TODO: { `.' NAME | index | `:' NAME funcargs | funcargs }
+			AST.Expression primaryExp = prefixExp;
 
-			return null;
+			while (true)
+			{
+				if (Stream.IsKeyword("."))
+				{
+					Stream.MoveNext();
+					String lookupName = Stream.GetName().Value;
+					Stream.MoveNext();
+					primaryExp = new AST.LookupExpression(primaryExp, lookupName);
+				}
+				else if (Stream.IsKeyword("[")) /* index -> '[' expr ']' */
+				{
+					Stream.MoveNext();
+
+					primaryExp = new AST.IndexExpression(primaryExp, ParseExpression());
+
+					Stream.GetKeywordAndMove("]");
+				}
+				else if (Stream.IsKeyword(":"))
+				{
+					Stream.MoveNext();
+
+					String functionName = Stream.GetName().Value;
+					Stream.MoveNext();
+
+					primaryExp = new AST.LookupExpression(primaryExp, functionName);
+
+					List<AST.Expression> args = ParseFuncArgs();
+
+					primaryExp = new AST.FunctionApplicationExpression(primaryExp, args);
+				}
+				else if (Stream.IsKeyword("(") || Stream.IsKeyword("{") || Stream.IsString())
+				{
+					List<AST.Expression> args = ParseFuncArgs();
+					primaryExp = new AST.FunctionApplicationExpression(primaryExp, args);
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			return primaryExp;
+		}
+
+		/* funcargs -> `(' [ explist1 ] `)' |
+		               constructor |
+		               STRING */
+		private List<AST.Expression> ParseFuncArgs()
+		{
+			if (Stream.IsKeyword("("))
+			{
+				Stream.MoveNext();
+
+				if (Stream.IsKeyword(")")) { return new List<AST.Expression>(); }
+
+				List<AST.Expression> args = ParseExpressionList1();
+
+				Stream.GetKeywordAndMove(")");
+
+				return args;
+			}
+			else if (Stream.IsKeyword("{"))
+			{
+				List<AST.Expression> retList = new List<AST.Expression>();
+				retList.Add(ParseConstructor());
+				return retList;
+			}
+			else if (Stream.IsString())
+			{
+				List<AST.Expression> retList = new List<AST.Expression>();
+				retList.Add(new AST.StringExpression(Stream.GetString().Value));
+				Stream.MoveNext();
+				return retList;
+			}
+			else
+			{
+				throw new ParserException();
+			}
 		}
 
 		/* constructor -> '{' { confield [fieldsep] } [fieldsep] '}' */
