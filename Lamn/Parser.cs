@@ -93,8 +93,20 @@ namespace Lamn
 			{
 				get
 				{
-					if (Position >= Source.Length - 2) { return new Lexer.Lexeme(null, Lexer.Lexeme.Type.EOS); }
-					return Source[Position];
+					int index = Position + 1;
+					while (index < Source.Length &&
+						        (Source[index].LexemeType == Lexer.Lexeme.Type.COMMENT ||
+								Source[index].LexemeType == Lexer.Lexeme.Type.WHITESPACE))
+					{
+						index++;
+					}
+
+					if (index < Source.Length)
+					{
+						return Source[index];
+					}
+
+					return new Lexer.Lexeme(null, Lexer.Lexeme.Type.EOS);
 				}
 			}
 
@@ -138,6 +150,16 @@ namespace Lamn
 				return false;
 			}
 
+			public Lexer.Lexeme GetKeywordAndMove(String keyword)
+			{
+				if (!IsKeyword(keyword)) { throw new ParserException(); }
+
+				Lexer.Lexeme lexeme = Head;
+				MoveNext();
+
+				return lexeme;
+			}
+
 			public bool IsName()
 			{
 				return Head.LexemeType == Lexer.Lexeme.Type.NAME;
@@ -159,21 +181,18 @@ namespace Lamn
 				if (!IsNumber()) { throw new ParserException(); }
 				return Head;
 			}
-		}
 
-		#region Intermediary parse results
-		private class Body
-		{
-			public AST.FunctionParamList paramList;
-			public AST.Chunk chunk;
-
-			public Body(AST.FunctionParamList p, AST.Chunk c)
+			public bool IsString()
 			{
-				paramList = p;
-				chunk = c;
+				return Head.LexemeType == Lexer.Lexeme.Type.STRING;
+			}
+
+			public Lexer.Lexeme GetString()
+			{
+				if (!IsString()) { throw new ParserException(); }
+				return Head;
 			}
 		}
-		#endregion
 
 		private LexemeStream Stream { get; set; }
 
@@ -241,28 +260,25 @@ namespace Lamn
 			String functionName = Stream.GetName().Value;
 			Stream.MoveNext();
 
-			Body body = ParseBody();
+			AST.Body body = ParseBody();
 
-			return new AST.LocalFunctionStatement(functionName, body.paramList, body.chunk);
+			return new AST.LocalFunctionStatement(functionName, body);
 		}
 
 		/* body ->  `(' parlist `)' chunk END */
-		private Body ParseBody()
+		private AST.Body ParseBody()
 		{
-			if (!Stream.IsKeyword("(")) { throw new ParserException(); }
-			Stream.MoveNext();
+			Stream.GetKeywordAndMove("(");
 
 			AST.FunctionParamList paramList = ParseParamList();
 
-			if (!Stream.IsKeyword(")")) { throw new ParserException(); }
-			Stream.MoveNext();
+			Stream.GetKeywordAndMove(")");
 
 			AST.Chunk chunk = ParseChunk();
 
-			if (!Stream.IsKeyword("end")) { throw new ParserException(); }
-			Stream.MoveNext();
+			Stream.GetKeywordAndMove("end");
 
-			return new Body(paramList, chunk);
+			return new AST.Body(paramList, chunk);
 		}
 
 		/* parlist -> [ param { `,' param } ] */
@@ -337,11 +353,160 @@ namespace Lamn
 			return expressions;
 		}
 
+		/* subexpr -> (simpleexp | unop subexpr) { binop subexpr }  <- Expanding binop until priority is less or equal to the priovious op> */
 		private AST.Expression ParseExpression()
 		{
-			AST.Expression expression = new AST.NumberExpression(Stream.GetNumber().NumberValue.Value);
-			Stream.MoveNext();
-			return expression;
+			AST.Expression expr;
+			if (Stream.IsKeyword("-") || Stream.IsKeyword("not") || Stream.IsKeyword("")) /* unop subexpr */
+			{
+				String unaryOp = Stream.Head.Value;
+				Stream.MoveNext();
+
+				expr = new AST.UnOpExpression(unaryOp, ParseExpression());
+			}
+			else /* simpleexp */
+			{
+				expr = ParseSimgpleExpr();
+			}
+
+			/* { binop subexpr } <- Expanding binop until priority is less or equal to the priovious op> */
+
+			return expr;
+		}
+
+		/* simpleexp -> NUMBER | STRING | NIL | true | false | ... |
+                        constructor | FUNCTION body | primaryexp */
+		private AST.Expression ParseSimgpleExpr()
+		{
+			AST.Expression expr = null;
+
+			if (Stream.IsNumber())
+			{
+				expr = new AST.NumberExpression(Stream.GetNumber().NumberValue.Value);
+				Stream.MoveNext();
+			}
+			else if (Stream.IsString())
+			{
+				expr = new AST.StringExpression(Stream.GetString().Value);
+				Stream.MoveNext();
+			}
+			else if (Stream.IsKeyword("nil"))
+			{
+				expr = new AST.NilExpression();
+				Stream.MoveNext();
+			}
+			else if (Stream.IsKeyword("true"))
+			{
+				expr = new AST.BoolExpression(true);
+				Stream.MoveNext();
+			}
+			else if (Stream.IsKeyword("false"))
+			{
+				expr = new AST.BoolExpression(false);
+				Stream.MoveNext();
+			}
+			else if (Stream.IsKeyword("..."))
+			{
+				expr = new AST.VarArgsExpression();
+				Stream.MoveNext();
+			}
+			else if (Stream.IsKeyword("{"))
+			{
+				expr = ParseConstructor();
+			}
+			else if (Stream.IsKeyword("function"))
+			{
+				Stream.MoveNext();
+
+				return new AST.FunctionExpression(ParseBody());
+			}
+			else
+			{
+				expr = ParsePrimaryExpr();
+			}
+
+			return expr;
+		}
+
+		/* primaryexp -> prefixexp { `.' NAME | index | `:' NAME funcargs | funcargs } */
+		private AST.Expression ParsePrimaryExpr()
+		{
+			AST.Expression prefixExp;
+
+			/* prefixexp -> NAME | '(' expr ')' */
+			if (Stream.IsName())
+			{
+				prefixExp = new AST.NameExpression(Stream.GetName().Value);
+			}
+			else if (Stream.IsKeyword("("))
+			{
+				Stream.MoveNext();
+
+				prefixExp = ParseExpression();
+
+				Stream.GetKeywordAndMove(")");
+			}
+
+			// TODO: { `.' NAME | index | `:' NAME funcargs | funcargs }
+
+			return null;
+		}
+
+		/* constructor -> '{' { confield [fieldsep] } [fieldsep] '}' */
+		private AST.Expression ParseConstructor()
+		{
+			Stream.GetKeywordAndMove("{");
+
+			List<AST.ConField> fields = new List<AST.ConField>();
+
+			do
+			{
+				if (Stream.IsKeyword("}")) break;
+
+				Lexer.Lexeme lookahead = Stream.Lookahead;
+				if (Stream.IsKeyword("[") ||
+					(Stream.IsName() && lookahead.LexemeType == Lexer.Lexeme.Type.KEYWORD && lookahead.Value == "="))
+				{
+					fields.Add(ParseRecField());
+				}
+				else
+				{
+					fields.Add(new AST.ListField(ParseExpression()));
+				}
+			} while (Stream.IsKeywordAndMove(",") || Stream.IsKeywordAndMove(";")); /* fieldsep = ';' | ',' */
+
+			Stream.MoveNext(); // "}"
+
+			return new AST.Constructor(fields);
+		}
+
+		/* (NAME | index) = exp1 */
+		private AST.ConField ParseRecField()
+		{
+			if (Stream.IsName())
+			{
+				String name = Stream.GetName().Value;
+				Stream.MoveNext();
+
+				Stream.GetKeywordAndMove("=");
+
+				return new AST.NameRecField(name, ParseExpression());
+			}
+			else if (Stream.IsKeyword("["))
+			{
+				Stream.MoveNext();
+
+				AST.Expression expr = ParseExpression();
+
+				Stream.GetKeywordAndMove("]");
+				Stream.GetKeywordAndMove("=");
+
+				return new AST.ExprRecField(expr, ParseExpression());
+			}
+			else
+			{
+				throw new ParserException();
+			}
 		}
 	}
 }
