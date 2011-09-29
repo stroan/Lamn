@@ -34,10 +34,14 @@ namespace Lamn
 		public class LocalFunctionStatement : Statement
 		{
 			public String Name { get; private set; }
+			public FunctionParamList ParamList { get; private set; }
+			public Chunk Body { get; private set; }
 
-			public LocalFunctionStatement(String name)
+			public LocalFunctionStatement(String name, FunctionParamList paramList, Chunk body)
 			{
 				Name = name;
+				ParamList = paramList;
+				Body = body;
 			}
 		}
 

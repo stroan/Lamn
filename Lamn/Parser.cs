@@ -127,6 +127,17 @@ namespace Lamn
 					&& Head.Value.Equals(keyword);
 			}
 
+			public bool IsKeywordAndMove(String keyword)
+			{
+				if (IsKeyword(keyword))
+				{
+					MoveNext();
+					return true;
+				}
+
+				return false;
+			}
+
 			public bool IsName()
 			{
 				return Head.LexemeType == Lexer.Lexeme.Type.NAME;
@@ -150,6 +161,7 @@ namespace Lamn
 			}
 		}
 
+		#region Intermediary parse results
 		private class Body
 		{
 			public AST.FunctionParamList paramList;
@@ -161,6 +173,7 @@ namespace Lamn
 				chunk = c;
 			}
 		}
+		#endregion
 
 		private LexemeStream Stream { get; set; }
 
@@ -201,6 +214,9 @@ namespace Lamn
 			return null;
 		}
 
+		/* localstat -> LOCAL function NAME body |
+		 *              LOCAL NAME {`,' NAME} [`=' explist1]
+		 */
 		private AST.Statement ParseLocalStatement()
 		{
 			Stream.MoveNext(); // Remove 'local'
@@ -215,7 +231,7 @@ namespace Lamn
 			}
 		}
 
-		/* LOCAL function NAME body 
+		/* localstat -> LOCAL function NAME body 
 		   NOTES: local has already been removed from the stream
 		 */
 		private AST.LocalFunctionStatement ParseLocalFunc()
@@ -227,7 +243,7 @@ namespace Lamn
 
 			Body body = ParseBody();
 
-			return new AST.LocalFunctionStatement(functionName);
+			return new AST.LocalFunctionStatement(functionName, body.paramList, body.chunk);
 		}
 
 		/* body ->  `(' parlist `)' chunk END */
@@ -259,7 +275,6 @@ namespace Lamn
 			{
 				do
 				{
-					Stream.MoveNext(); // Drop '(' or ','
 					if (Stream.IsName())
 					{
 						paramList.Add(Stream.GetName().Value);
@@ -273,7 +288,7 @@ namespace Lamn
 						throw new ParserException();
 					}
 					Stream.MoveNext();
-				} while (!hasVarArgs && Stream.IsKeyword(","));
+				} while (!hasVarArgs && Stream.IsKeywordAndMove(","));
 			}
 
 			return new AST.FunctionParamList(paramList, hasVarArgs);
