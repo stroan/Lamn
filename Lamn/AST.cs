@@ -19,15 +19,49 @@ namespace Lamn
 
 		public class Statement { }
 
-		public class AssignmentStatement : Statement
+		public class LocalAssignmentStatement : Statement
 		{
-			public List<Lexer.Lexeme> Variables { get; private set; }
-			public List<Lexer.Lexeme> Expressions { get; private set; }
+			public List<String> Variables { get; private set; }
+			public List<Expression> Expressions { get; private set; }
 
-			public AssignmentStatement(List<Lexer.Lexeme> variables, List<Lexer.Lexeme> expressions)
+			public LocalAssignmentStatement(List<String> variables, List<Expression> expressions)
 			{
 				Variables = variables;
 				Expressions = expressions;
+			}
+		}
+
+		public class LocalFunctionStatement : Statement
+		{
+			public String Name { get; private set; }
+
+			public LocalFunctionStatement(String name)
+			{
+				Name = name;
+			}
+		}
+
+		public class FunctionParamList
+		{
+			public List<String> NamedParams { get; private set; }
+			public bool HasVarArgs { get; private set; }
+
+			public FunctionParamList(List<String> parameters, bool hasVarArgs)
+			{
+				NamedParams = parameters;
+				HasVarArgs = hasVarArgs;
+			}
+		}
+
+		public class Expression { }
+
+		public class NumberExpression : Expression
+		{
+			public double Value { get; private set; }
+
+			public NumberExpression(double value)
+			{
+				Value = value;
 			}
 		}
 

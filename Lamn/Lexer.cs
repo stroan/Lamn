@@ -17,7 +17,8 @@ namespace Lamn
 				KEYWORD,
 				STRING,
 				NAME,
-				COMMENT
+				COMMENT,
+				EOS
 			}
 
 			public Type LexemeType { get; private set; }
