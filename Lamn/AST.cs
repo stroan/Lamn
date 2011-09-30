@@ -43,6 +43,141 @@ namespace Lamn
 			}
 		}
 
+		public class IfStatement : Statement
+		{
+			public List<TestBlock> Conditions { get; private set; }
+
+			public IfStatement(List<TestBlock> conditions)
+			{
+				Conditions = conditions;
+			}
+		}
+
+		public class WhileStatement : Statement
+		{
+			public Expression Condition { get; private set; }
+			public Chunk Block { get; private set; }
+
+			public WhileStatement(Expression condition, Chunk block)
+			{
+				Condition = condition;
+				Block = block;
+			}
+		}
+
+		public class DoStatement : Statement
+		{
+			public Chunk Block { get; private set; }
+
+			public DoStatement(Chunk block)
+			{
+				Block = block;
+			}
+		}
+
+		public class ForStatement : Statement
+		{
+			public ForClause Clause { get; private set; }
+			public Chunk Block { get; private set; }
+
+			public ForStatement(ForClause clause, Chunk block)
+			{
+				Clause = clause;
+				Block = block;
+			}
+		}
+
+		public class FunctionCallStatement : Statement
+		{
+			public Expression Expr { get; private set; }
+
+			public FunctionCallStatement(Expression expr)
+			{
+				Expr = expr;
+			}
+		}
+
+		public class AssignmentStatement : Statement
+		{
+			public List<Expression> Variables { get; private set; }
+			public List<Expression> Expressions { get; private set; }
+
+			public AssignmentStatement(List<Expression> variables, List<Expression> expressions)
+			{
+				Variables = variables;
+				Expressions = expressions;
+			}
+		}
+
+		public class ForClause { }
+
+		public class NumForClause : ForClause
+		{
+			public String Name { get; private set; }
+			public Expression Expr1 { get; private set; }
+			public Expression Expr2 { get; private set; }
+			public Expression Expr3 { get; private set; }
+
+			public NumForClause(String name, Expression expr1, Expression expr2, Expression expr3)
+			{
+				Name = name;
+				Expr1 = expr1;
+				Expr2 = expr2;
+				Expr3 = expr3;
+			}
+		}
+
+		public class ListForClause : ForClause
+		{
+			public List<String> Names { get; private set; }
+			public List<Expression> Expressions { get; private set; }
+
+			public ListForClause(List<String> names, List<Expression> expressions)
+			{
+				Names = names;
+				Expressions = expressions;
+			}
+		}
+
+		public class RepeatStatement : Statement
+		{
+			public Chunk Block { get; private set; }
+			public Expression Condition { get; private set; }
+
+			public RepeatStatement(Chunk block, Expression condition) {
+				Block = block;
+				Condition = condition;
+			}
+		}
+
+		public class ReturnStatement : Statement
+		{
+			public List<Expression> Expressions;
+
+			public ReturnStatement(List<Expression> expressions)
+			{
+				Expressions = expressions;
+			}
+		}
+
+		public class BreakStatement : Statement { }
+
+		public class FunctionStatement : Statement
+		{
+			public String MainName { get; private set; }
+			public List<String> FieldNames { get; private set; }
+			public String SelfName { get; private set; }
+			public Body Body { get; private set; }
+
+			public FunctionStatement(String mainName, List<String> fieldNames, String selfName, Body body)
+			{
+				MainName = mainName;
+				FieldNames = FieldNames;
+				SelfName = selfName;
+				Body = body;
+			}
+		}
+
 		public class FunctionParamList
 		{
 			public List<String> NamedParams { get; private set; }
@@ -52,6 +187,18 @@ namespace Lamn
 			{
 				NamedParams = parameters;
 				HasVarArgs = hasVarArgs;
+			}
+		}
+
+		public class TestBlock
+		{
+			public Expression Cond { get; private set; }
+			public Chunk Block { get; private set; }
+
+			public TestBlock(Expression cond, Chunk block)
+			{
+				Cond = cond;
+				Block = block;
 			}
 		}
 

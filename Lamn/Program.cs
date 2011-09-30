@@ -9,7 +9,7 @@ namespace Lamn
 	{
 		static void Main(string[] args)
 		{
-			String input2 = "local a = 1 >= 2 ^ 2";
+			String input2 = "function foo(...) local a = 1 return end foo, bar = 1,2,3";
 
 			Lexer lexer = new Lexer();
 			List<Lexer.Lexeme> output = lexer.lex(input2);

@@ -3,55 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-/* Grammar as defined in lparser.c
- * 
- * chunk -> { stat [';'] }
- * block -> chunk
- * 
- * stat -> ifstat |
- *         whilestat |
- *         DO block END |
- *         forstat |
- *         repeatstat |
- *         funcstat |
- *         localstat | localfunc |   <- lookahead for NAME | function
- *         retstat |
- *         BREAK |
- *         exprstat
- * 
- * ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END
- * test_then_block -> [IF | ELSEIF] cond THEN block
- * 
- * whilestat -> WHILE cond DO block END
- * 
- * forstat -> FOR (fornum | forlist) END       <- lookahead for '='|','
- * forbody -> DO block
- * fornum -> NAME = exp1,exp1[,exp1] forbody
- * forlist -> NAME {,NAME} IN explist1 forbody
- * 
- * repeatstat -> REPEAT block UNTIL cond
- * 
- * funcstat -> FUNCTION funcname body
- * funcname -> NAME {field} [`:' NAME]
- * field -> ['.' | ':'] NAME
- * 
- * localstat -> LOCAL NAME {`,' NAME} [`=' explist1]
- * 
- * retstat -> RETURN explist
- * 
- * localfunc -> LOCAL function NAME body
- * body ->  `(' parlist `)' chunk END
- * parlist -> [ param { `,' param } ]
- * 
- * exprstat -> func | assignment    <- e = primaryexp if is_function_call(e) { e assignment } else { e }
- * assignment -> `,' primaryexp assignment |
- *               `=' explist1
- * explist1 -> expr { `,' expr }
- * 
- * cond -> exp                      <- if exp = nil { false } else { exp }
- * 
-*/
-
 namespace Lamn
 {
 	class Parser
@@ -178,6 +129,7 @@ namespace Lamn
 			}
 		}
 
+		#region Operator Precedences
 		private static Dictionary<String, int> opLeftPriorities = new Dictionary<String, int>() {
 			{"+", 6},{"-", 6},{"*", 7},{"/", 7},{"%", 7},
 			{"^", 10},{"..", 5},
@@ -195,6 +147,7 @@ namespace Lamn
 			{"and", 2},
 			{"or", 2}
 		};
+		#endregion
 
 		private LexemeStream Stream { get; set; }
 
@@ -224,14 +177,271 @@ namespace Lamn
 
 		private bool IsChunkFollow()
 		{
-			return Stream.EOF || Stream.IsKeyword("end");
+			return Stream.EOF || Stream.IsKeyword("end") || Stream.IsKeyword("elseif") || Stream.IsKeyword("else") || Stream.IsKeyword("until");
 		}
 
 		private AST.Statement ParseStatement()
 		{
-			if (Stream.IsKeyword("local"))
+			if (Stream.IsKeyword("if"))
+			{
+				return ParseIfStatement();
+			}
+			else if (Stream.IsKeyword("while"))
+			{
+				return ParseWhileStatement();
+			}
+			else if (Stream.IsKeyword("local"))
 			{
 				return ParseLocalStatement();
+			}
+			else if (Stream.IsKeyword("do"))
+			{
+				return ParseDoStatement();
+			}
+			else if (Stream.IsKeyword("for"))
+			{
+				return ParseForStatement();
+			}
+			else if (Stream.IsKeyword("repeat"))
+			{
+				return ParseRepeatStatement();
+			}
+			else if (Stream.IsKeyword("function"))
+			{
+				return ParseFunctionStatement();
+			}
+			else if (Stream.IsKeyword("return"))
+			{
+				return ParseReturnStatement();
+			}
+			else if (Stream.IsKeyword("break"))
+			{
+				Stream.MoveNext();
+				return new AST.BreakStatement();
+			}
+			else
+			{
+				return ParseExpressionStatement();
+			}
+		}
+
+		/* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */
+		private AST.Statement ParseIfStatement()
+		{
+			List<AST.TestBlock> conditions = new List<AST.TestBlock>();
+
+			conditions.Add(ParseTestBlock());
+
+			while (Stream.IsKeyword("elseif"))
+			{
+				conditions.Add(ParseTestBlock());
+			}
+
+			if (Stream.IsKeyword("else"))
+			{
+				Stream.MoveNext();
+				conditions.Add(new AST.TestBlock(new AST.BoolExpression(true), ParseChunk()));
+			}
+
+			Stream.GetKeywordAndMove("end");
+
+			return new AST.IfStatement(conditions);
+		}
+
+		/* test_then_block -> [IF | ELSEIF] cond THEN block */
+		private AST.TestBlock ParseTestBlock()
+		{
+			if (Stream.IsKeyword("if") || Stream.IsKeyword("elseif"))
+			{
+				Stream.MoveNext();
+				AST.Expression cond = ParseExpression();
+				Stream.GetKeywordAndMove("then");
+				AST.Chunk block = ParseChunk();
+
+				return new AST.TestBlock(cond, block);
+			}
+			else
+			{
+				throw new ParserException();
+			}
+		}
+
+		/* whilestat -> WHILE cond DO block END */
+		private AST.Statement ParseWhileStatement()
+		{
+			Stream.GetKeywordAndMove("while");
+
+			AST.Expression cond = ParseCond();
+
+			Stream.GetKeywordAndMove("do");
+
+			AST.Chunk block = ParseChunk();
+
+			Stream.GetKeywordAndMove("end");
+
+			return new AST.WhileStatement(cond, block);
+		}
+
+		/* DO block END */
+		private AST.Statement ParseDoStatement()
+		{
+			Stream.GetKeywordAndMove("do");
+
+			AST.Chunk block = ParseChunk();
+
+			Stream.GetKeywordAndMove("end");
+
+			return new AST.DoStatement(block);
+		}
+
+		/* forstat -> FOR (fornum | forlist) END       <- lookahead for '='|',' */
+		private AST.Statement ParseForStatement()
+		{
+			Stream.GetKeywordAndMove("for");
+
+			AST.ForClause clause;
+
+			Lexer.Lexeme lookahead = Stream.Lookahead;
+			/* fornum -> NAME = exp1,exp1[,exp1] forbody */
+			if (lookahead.LexemeType == Lexer.Lexeme.Type.KEYWORD && lookahead.Value.Equals("="))
+			{
+				String name = Stream.GetName().Value;
+				Stream.MoveNext();
+
+				Stream.GetKeywordAndMove("=");
+
+				AST.Expression expr1 = ParseExpression();
+
+				Stream.GetKeywordAndMove(",");
+
+				AST.Expression expr2 = ParseExpression();
+
+				AST.Expression expr3 = null;
+
+				if (Stream.IsKeyword(","))
+				{
+					Stream.MoveNext();
+					expr3 = ParseExpression();
+				}
+
+				clause = new AST.NumForClause(name, expr1, expr2, expr3);
+			}
+			else /* forlist -> NAME {,NAME} IN explist1 forbody */
+			{
+				List<String> names = new List<String>();
+				names.Add(Stream.GetName().Value);
+				Stream.MoveNext();
+
+				while (Stream.IsKeyword(","))
+				{
+					Stream.MoveNext();
+
+					names.Add(Stream.GetName().Value);
+					Stream.MoveNext();
+				}
+
+				Stream.GetKeywordAndMove("=");
+
+				List<AST.Expression> expressions = ParseExpressionList1();
+
+				clause = new AST.ListForClause(names, expressions);
+			}
+
+			/* forbody -> DO block */
+			Stream.GetKeywordAndMove("do");
+
+			AST.Chunk block = ParseChunk();
+
+			Stream.GetKeywordAndMove("end");
+
+			return new AST.ForStatement(clause, block);
+		}
+
+		/* repeatstat -> REPEAT block UNTIL cond */
+		private AST.Statement ParseRepeatStatement()
+		{
+			Stream.GetKeywordAndMove("repeat");
+
+			AST.Chunk block = ParseChunk();
+
+			Stream.GetKeywordAndMove("until");
+
+			AST.Expression cond = ParseCond();
+
+			return new AST.RepeatStatement(block, cond);
+		}
+
+		/* funcstat -> FUNCTION funcname body
+		   funcname -> NAME {field} [`:' NAME]
+		   field -> '.' NAME */
+		private AST.Statement ParseFunctionStatement()
+		{
+			Stream.GetKeywordAndMove("function");
+
+			String mainName = Stream.GetName().Value;
+			Stream.MoveNext();
+
+			List<String> fields = new List<string>();
+			while (Stream.IsKeyword("."))
+			{
+				Stream.MoveNext();
+				fields.Add(Stream.GetName().Value);
+				Stream.MoveNext();
+			}
+
+			String selfName = null;
+			if (Stream.IsKeyword(":"))
+			{
+				Stream.MoveNext();
+				selfName = Stream.GetName().Value;
+				Stream.MoveNext();
+			}
+
+			AST.Body body = ParseBody();
+
+			return new AST.FunctionStatement(mainName, fields, selfName, body);
+		}
+
+		/* retstat -> RETURN explist */
+		private AST.Statement ParseReturnStatement()
+		{
+			Stream.GetKeywordAndMove("return");
+
+			List<AST.Expression> expressions = null;
+
+			if (!Stream.IsKeyword(";") && !IsChunkFollow())
+			{
+				expressions = ParseExpressionList1();
+			}
+
+			return new AST.ReturnStatement(expressions);
+		}
+
+		/* exprstat -> func | assignment    <- e = primaryexp if is_function_call(e) { e assignment } else { e }
+           assignment -> `,' primaryexp assignment |
+                         `=' explist1 */
+		private AST.Statement ParseExpressionStatement()
+		{
+			AST.Expression primaryExp = ParsePrimaryExpr();
+
+			if (primaryExp is AST.FunctionApplicationExpression)
+			{
+				return new AST.FunctionCallStatement(primaryExp);
+			}
+			else if (Stream.IsKeyword(",") || Stream.IsKeyword("="))
+			{
+				List<AST.Expression> vars = new List<AST.Expression>() { primaryExp };
+				while (Stream.IsKeyword(","))
+				{
+					Stream.MoveNext();
+					vars.Add(ParseExpression());
+				}
+
+				Stream.GetKeywordAndMove("=");
+
+				List<AST.Expression> exprs = ParseExpressionList1();
+
+				return new AST.AssignmentStatement(vars, exprs);
 			}
 			else
 			{
@@ -359,6 +569,20 @@ namespace Lamn
 			return expressions;
 		}
 
+		/* cond -> exp        <- if exp = nil { false } else { exp } */
+		private AST.Expression ParseCond()
+		{
+			AST.Expression expr = ParseExpression();
+
+			if (expr is AST.NilExpression)
+			{
+				return new AST.BoolExpression(false);
+			}
+
+			return expr;
+		}
+
+		/* expr -> subexpr */
 		private AST.Expression ParseExpression()
 		{
 			return ParseSubExpression(0);
@@ -377,7 +601,7 @@ namespace Lamn
 			}
 			else /* simpleexp */
 			{
-				expr = ParseSimgpleExpr();
+				expr = ParseSimpleExpr();
 			}
 
 			/* { binop subexpr } <- Expanding binop until priority is less or equal to the priovious op> */
@@ -410,7 +634,7 @@ namespace Lamn
 
 		/* simpleexp -> NUMBER | STRING | NIL | true | false | ... |
                         constructor | FUNCTION body | primaryexp */
-		private AST.Expression ParseSimgpleExpr()
+		private AST.Expression ParseSimpleExpr()
 		{
 			AST.Expression expr = null;
 
@@ -541,7 +765,7 @@ namespace Lamn
 			{
 				Stream.MoveNext();
 
-				if (Stream.IsKeyword(")")) { return new List<AST.Expression>(); }
+				if (Stream.IsKeywordAndMove(")")) { return new List<AST.Expression>(); }
 
 				List<AST.Expression> args = ParseExpressionList1();
 

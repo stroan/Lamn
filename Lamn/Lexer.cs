@@ -134,7 +134,8 @@ namespace Lamn
 		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",    Rule.LongStringProducer),    // Multline string
 		                 new Rule("\"([^\\n\"\\\\]|\\\\(.|\\n))*\"",               Rule.QuoteStringProducer),    // String with "s
 		                 new Rule("'([^\\n'\\\\]|\\\\(.|\\n))*'",                  Rule.QuoteStringProducer),    // String with 's
-		                 new Rule("(and|break|do|else|elseif|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)", Lexeme.Type.KEYWORD),
+						 new Rule("elseif",                                        Lexeme.Type.KEYWORD),
+		                 new Rule("(and|break|do|else|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.\\.)",                                   Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.)",                                      Lexeme.Type.KEYWORD),
