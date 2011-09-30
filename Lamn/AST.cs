@@ -125,6 +125,20 @@ namespace Lamn
 			}
 		}
 
+		public class BinOpExpression : Expression
+		{
+			public String Op { get; private set; }
+			public Expression LeftExpr { get; private set; }
+			public Expression RightExpr { get; private set; }
+
+			public BinOpExpression(String op, Expression leftExpr, Expression rightExpr)
+			{
+				Op = op;
+				LeftExpr = leftExpr;
+				RightExpr = rightExpr;
+			}
+		}
+
 		public class FunctionExpression : Expression
 		{
 			public Body Body { get; private set; }

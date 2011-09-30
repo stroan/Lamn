@@ -50,22 +50,6 @@ using System.Text;
  * 
  * cond -> exp                      <- if exp = nil { false } else { exp }
  * 
- * expr -> subexpr
- * subexpr -> (simpleexp | unop subexpr) { binop subexpr }  <- Expanding binop until priority is less or equal to the priovious op>
- * simpleexp -> NUMBER | STRING | NIL | true | false | ... |
- *                 constructor | FUNCTION body | primaryexp
- * primaryexp -> prefixexp { `.' NAME | index | `:' NAME funcargs | funcargs }
- * prefixexp -> NAME | '(' expr ')'
- * funcargs -> `(' [ explist1 ] `)' |
- *             constructor |
- *             STRING
- * 
- * constructor -> '{' { confield [fieldsep] } [fieldsep] '}'
- * confield -> recfield | expr    <- lookahead for '='
- * recfield -> (NAME | index) = exp1
- * fieldsep = ';' | ','
- * 
- * index -> '[' expr ']'
 */
 
 namespace Lamn
@@ -193,6 +177,24 @@ namespace Lamn
 				return Head;
 			}
 		}
+
+		private static Dictionary<String, int> opLeftPriorities = new Dictionary<String, int>() {
+			{"+", 6},{"-", 6},{"*", 7},{"/", 7},{"%", 7},
+			{"^", 10},{"..", 5},
+			{"==", 3},{"~=", 3},
+			{">", 3},{"<", 3},{">=", 3},{"<=", 3},
+			{"and", 2},
+			{"or", 2}
+		};
+
+		private static Dictionary<String, int> opRightPriorities = new Dictionary<String, int>() {
+			{"+", 6},{"-", 6},{"*", 7},{"/", 7},{"%", 7},
+			{"^", 9},{"..", 4},
+			{"==", 3},{"~=", 3},
+			{">", 3},{"<", 3},{">=", 3},{"<=", 3},
+			{"and", 2},
+			{"or", 2}
+		};
 
 		private LexemeStream Stream { get; set; }
 
@@ -357,8 +359,13 @@ namespace Lamn
 			return expressions;
 		}
 
-		/* subexpr -> (simpleexp | unop subexpr) { binop subexpr }  <- Expanding binop until priority is less or equal to the priovious op> */
 		private AST.Expression ParseExpression()
+		{
+			return ParseSubExpression(0);
+		}
+
+		/* subexpr -> (simpleexp | unop subexpr) { binop subexpr }  <- Expanding binop until priority is less or equal to the priovious op> */
+		private AST.Expression ParseSubExpression(int limit)
 		{
 			AST.Expression expr;
 			if (Stream.IsKeyword("-") || Stream.IsKeyword("not") || Stream.IsKeyword("")) /* unop subexpr */
@@ -376,7 +383,29 @@ namespace Lamn
 			/* { binop subexpr } <- Expanding binop until priority is less or equal to the priovious op> */
 			/* TODO: THIS */
 
+			while (IsBinOp() && opLeftPriorities[Stream.Head.Value] > limit)
+			{
+				String opName = Stream.Head.Value;
+				Stream.MoveNext();
+
+				AST.Expression rightExpr = ParseSubExpression(opRightPriorities[opName]);
+
+				expr = new AST.BinOpExpression(opName, expr, rightExpr);
+			}
+
 			return expr;
+		}
+
+		/* binop ::= `+´ | `-´ | `*´ | `/´ | `^´ | `%´ | `..´ | 
+		 `<´ | `<=´ | `>´ | `>=´ | `==´ | `~=´ | 
+		 and | or */
+		private bool IsBinOp()
+		{
+			return Stream.IsKeyword("+") || Stream.IsKeyword("-") || Stream.IsKeyword("*") ||
+				   Stream.IsKeyword("/") || Stream.IsKeyword("^") || Stream.IsKeyword("%") ||
+				   Stream.IsKeyword("..") || Stream.IsKeyword("<") || Stream.IsKeyword("<=") ||
+				   Stream.IsKeyword(">") || Stream.IsKeyword(">=") || Stream.IsKeyword("==") ||
+				   Stream.IsKeyword("~=") || Stream.IsKeyword("and") || Stream.IsKeyword("or");
 		}
 
 		/* simpleexp -> NUMBER | STRING | NIL | true | false | ... |
