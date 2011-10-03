@@ -17,6 +17,21 @@ namespace Lamn
 			Parser parser = new Parser(output);
 			AST outpu2 = parser.Parse();
 
+			VirtualMachine vm = new VirtualMachine();
+
+			UInt32[] bytecodes = { VirtualMachine.OpCodes.MakeLoadConstant(0),
+								   VirtualMachine.OpCodes.MakeLoadConstant(1),
+								   VirtualMachine.OpCodes.ADD,
+								   VirtualMachine.OpCodes.RET };
+			Object[] constants = { 3.0, 2.0 };
+
+			int functionIndex = vm.RegisterFunction(bytecodes, constants);
+
+			VirtualMachine.Closure closure = new VirtualMachine.Closure(functionIndex);
+			vm.PushStack(closure);
+			vm.Call();
+			vm.Run();
+
 			return;
 		}
 	}
