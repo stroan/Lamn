@@ -13,11 +13,9 @@ namespace Lamn
 			public const UInt32 ADD   = 0x02000000;
 			
 			public const UInt32 RET   = 0x03000000;
-			public const UInt32 CALL  = 0x07000000;
+			public const UInt32 CALL  = 0x04000000;
 
-			public const UInt32 NEWVARG  = 0x04000000;
-			public const UInt32 PUSHVARG = 0x05000000;
-			public const UInt32 POPVARG  = 0x06000000;
+			public const UInt32 POPVARGS = 0x05000000;
 
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
@@ -26,9 +24,24 @@ namespace Lamn
 			public const int OP1_SHIFT      = 12;
 			public const int OP2_SHIFT      = 0;
 
-			public static UInt32 MakeLoadConstant(int index)
+			public static UInt32 MakeLOADK(int index)
 			{
-				return LOADK | ((UInt32)index << OP1_SHIFT) & OP1_MASK;
+				return LOADK | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakeCALL(int numArgs)
+			{
+				return CALL | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakePOPVARGS(int numArgs)
+			{
+				return POPVARGS | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakeRET(int numArgs)
+			{
+				return RET | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK);
 			}
 		}
 
@@ -53,6 +66,15 @@ namespace Lamn
 			public VarArgs()
 			{
 				Args = new LinkedList<Object>();	
+			}
+
+			public Object PopArg()
+			{
+				if (Args.Count == 0) { return null; }
+
+				Object first = Args.First.Value;
+				Args.RemoveFirst();
+				return first;
 			}
 		}
 
@@ -127,10 +149,13 @@ namespace Lamn
 						DoADD(currentInstruction);
 						break;
 					case OpCodes.RET:
-						DoRET();
+						DoRET(currentInstruction);
 						break;
 					case OpCodes.CALL:
-						DoCALL();
+						DoCALL(currentInstruction);
+						break;
+					case OpCodes.POPVARGS:
+						DoPOPVARGS(currentInstruction);
 						break;
 					default:
 						throw new VMException();
@@ -140,7 +165,7 @@ namespace Lamn
 
 		public void Call()
 		{
-			DoCALL();
+			DoCALL(0);
 		}
 
 		#region Manipulate Stacks
@@ -155,6 +180,11 @@ namespace Lamn
 			Object retValue = Stack[stackIndex].contents;
 			Stack[stackIndex] = null;
 			return retValue;
+		}
+
+		public Object PeekStack()
+		{
+			return Stack[stackIndex - 1].contents;
 		}
 
 		public Object GetStackAtIndex(int index)
@@ -179,9 +209,16 @@ namespace Lamn
 			CurrentIP.InstructionIndex++;
 		}
 
-		private void DoRET()
+		private void DoRET(UInt32 instruction)
 		{
 			int oldBaseIndex = (int)GetStackAtIndex(baseIndex);
+
+			VarArgs args = new VarArgs();
+			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+			for (int i = 0; i < numArgs; i++)
+			{
+				args.Args.AddLast(PopStack());
+			}
 
 			while (stackIndex > baseIndex)
 			{
@@ -195,12 +232,22 @@ namespace Lamn
 			{
 				CurrentIP.InstructionIndex++;
 			}
+
+			PushStack(args);
 		}
 
-		private void DoCALL()
+		private void DoCALL(UInt32 instruction)
 		{
 			Object o = PopStack();
 
+			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			VarArgs args = new VarArgs();
+			for (int i = 0; i < numArgs; i++)
+			{
+				args.Args.AddLast(PopStack());
+			}
+			
 			InstructionPointer newIP = null;
 
 			if (o is Closure)
@@ -216,8 +263,23 @@ namespace Lamn
 			PushStack(CurrentIP);
 			PushStack(baseIndex);
 			baseIndex = stackIndex - 1;
+			PushStack(args);
 
 			CurrentIP = newIP;
+		}
+
+		private void DoPOPVARGS(UInt32 instruction)
+		{
+			VarArgs vargs = (VarArgs)PeekStack();
+
+			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			for (int i = 0; i < numArgs; i++)
+			{
+				PushStack(vargs.PopArg());
+			}
+
+			CurrentIP.InstructionIndex++;
 		}
 		#endregion
 	}

@@ -19,11 +19,22 @@ namespace Lamn
 
 			VirtualMachine vm = new VirtualMachine();
 
-			UInt32[] bytecodes = { VirtualMachine.OpCodes.MakeLoadConstant(0),
-								   VirtualMachine.OpCodes.MakeLoadConstant(1),
-								   VirtualMachine.OpCodes.ADD,
-								   VirtualMachine.OpCodes.RET };
-			Object[] constants = { 3.0, 2.0 };
+			// Function foo
+			UInt32[] bytecodesFoo = { VirtualMachine.OpCodes.MakePOPVARGS(2),
+									  VirtualMachine.OpCodes.ADD,
+									  VirtualMachine.OpCodes.MakeRET(1) };
+			Object[] constantsFoo = { };
+
+			int fooIndex = vm.RegisterFunction(bytecodesFoo, constantsFoo);
+
+			// Chunk body
+			UInt32[] bytecodes = { VirtualMachine.OpCodes.MakeLOADK(0),
+								   VirtualMachine.OpCodes.MakeLOADK(1),
+								   VirtualMachine.OpCodes.MakeLOADK(2),
+								   VirtualMachine.OpCodes.MakeCALL(2),
+								   VirtualMachine.OpCodes.MakePOPVARGS(1),
+								   VirtualMachine.OpCodes.MakeRET(1) };
+			Object[] constants = { 3.0, 2.0, new VirtualMachine.Closure(fooIndex) };
 
 			int functionIndex = vm.RegisterFunction(bytecodes, constants);
 
