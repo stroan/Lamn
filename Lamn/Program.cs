@@ -19,6 +19,9 @@ namespace Lamn
 
 			VirtualMachine vm = new VirtualMachine();
 
+			String fooId = Guid.NewGuid().ToString();
+			String mainId = Guid.NewGuid().ToString();
+
 			// Function foo
 			UInt32[] bytecodesFoo = { VirtualMachine.OpCodes.MakePOPVARGS(1),
 									  VirtualMachine.OpCodes.MakeGETUPVAL(0),
@@ -26,7 +29,7 @@ namespace Lamn
 									  VirtualMachine.OpCodes.MakeRET(1) };
 			Object[] constantsFoo = { };
 
-			int fooIndex = vm.RegisterFunction(bytecodesFoo, constantsFoo);
+			vm.RegisterFunction(fooId, bytecodesFoo, constantsFoo);
 
 			// Chunk body
 			UInt32[] bytecodes = { VirtualMachine.OpCodes.MakeLOADK(0),
@@ -34,14 +37,16 @@ namespace Lamn
 								   VirtualMachine.OpCodes.MakeLOADK(1),
 								   VirtualMachine.OpCodes.MakeCLOSURE(2),
 								   VirtualMachine.OpCodes.MakePOPCLOSED(1),
+								   VirtualMachine.OpCodes.MakePUTGLOBAL(3),
+								   VirtualMachine.OpCodes.MakeGETGLOBAL(3),
 								   VirtualMachine.OpCodes.MakeCALL(1),
 								   VirtualMachine.OpCodes.MakePOPVARGS(1),
 								   VirtualMachine.OpCodes.MakeRET(1) };
-			Object[] constants = { 3.0, 2.0, fooIndex };
+			Object[] constants = { 3.0, 2.0, fooId, "foo" };
 
-			int functionIndex = vm.RegisterFunction(bytecodes, constants);
+			vm.RegisterFunction(mainId, bytecodes, constants);
 
-			VirtualMachine.Closure closure = new VirtualMachine.Closure(functionIndex, new VirtualMachine.StackCell[0]);
+			VirtualMachine.Closure closure = new VirtualMachine.Closure(mainId, new VirtualMachine.StackCell[0]);
 			vm.PushStack(closure);
 			vm.Call();
 			vm.Run();

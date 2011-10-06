@@ -19,9 +19,11 @@ namespace Lamn
 
 			public const UInt32 CLOSEVARS = 0x06000000;
 			public const UInt32 POPCLOSED = 0x07000000;
-
 			public const UInt32 CLOSURE = 0x08000000;
 			public const UInt32 GETUPVAL = 0x09000000;
+
+			public const UInt32 GETGLOBAL = 0x0A000000;
+			public const UInt32 PUTGLOBAL = 0x0B000000;
 
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
@@ -69,6 +71,16 @@ namespace Lamn
 			{
 				return GETUPVAL | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
 			}
+
+			public static UInt32 MakeGETGLOBAL(int index)
+			{
+				return GETGLOBAL | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakePUTGLOBAL(int index)
+			{
+				return PUTGLOBAL | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
+			}
 		}
 
 		public class Function
@@ -106,12 +118,12 @@ namespace Lamn
 
 		public class Closure
 		{
-			public int FunctionIndex { get; private set; }
+			public String FunctionId { get; private set; }
 			public StackCell[] ClosedVars { get; private set; }
 
-			public Closure(int functionIndex, StackCell[] closedVars)
+			public Closure(String functionId, StackCell[] closedVars)
 			{
-				FunctionIndex = functionIndex;
+				FunctionId = functionId;
 				ClosedVars = closedVars;
 			}
 		}
@@ -139,12 +151,13 @@ namespace Lamn
 
 		public class VMException : Exception { }
 
-		private List<Function> FunctionMap { get; set; }
+		private Dictionary<String, Function> FunctionMap { get; set; }
 
 		private StackCell[] Stack { get; set; }
 		private InstructionPointer CurrentIP { get; set; }
-
 		private LinkedList<StackCell> ClosureStack { get; set; }
+
+		private Dictionary<Object, Object> GlobalTable { get; set; }
 
 		private const int stackSize = 512;
 
@@ -153,15 +166,16 @@ namespace Lamn
 
 		public VirtualMachine()
 		{
-			FunctionMap = new List<Function>();
+			FunctionMap = new Dictionary<String, Function>();
 			Stack = new StackCell[stackSize];
 			ClosureStack = new LinkedList<StackCell>();
+			GlobalTable = new Dictionary<Object, Object>();
 		}
 
-		public int RegisterFunction(UInt32[] bytecodes, Object[] constants)
+		public int RegisterFunction(String id, UInt32[] bytecodes, Object[] constants)
 		{
 			int index = FunctionMap.Count;
-			FunctionMap.Add(new Function(bytecodes, constants, index));
+			FunctionMap.Add(id, new Function(bytecodes, constants, index));
 			return index;
 		}
 
@@ -199,6 +213,12 @@ namespace Lamn
 						break;
 					case OpCodes.GETUPVAL:
 						DoGETUPVAL(currentInstruction);
+						break;
+					case OpCodes.GETGLOBAL:
+						DoGETGLOBAL(currentInstruction);
+						break;
+					case OpCodes.PUTGLOBAL:
+						DoPUTGLOBAL(currentInstruction);
 						break;
 					default:
 						throw new VMException();
@@ -302,7 +322,7 @@ namespace Lamn
 			if (o is Closure)
 			{
 				Closure closure = (Closure)o;
-				Function f = FunctionMap[(closure).FunctionIndex];
+				Function f = FunctionMap[(closure).FunctionId];
 				newIP = new InstructionPointer(f, closure.ClosedVars, 0);
 			}
 			else
@@ -360,10 +380,10 @@ namespace Lamn
 		{
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
-			int functionIndex = (int)CurrentIP.CurrentFunction.Constants[index];
+			String functionId = (String)CurrentIP.CurrentFunction.Constants[index];
 			StackCell[] closure = ClosureStack.ToArray();
 
-			PushStack(new Closure(functionIndex, closure));
+			PushStack(new Closure(functionId, closure));
 
 			CurrentIP.InstructionIndex++;
 		}
@@ -373,6 +393,30 @@ namespace Lamn
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
 			PushStackUnboxed(CurrentIP.ClosedVars[index]);
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		public void DoPUTGLOBAL(UInt32 instruction)
+		{
+			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			Object constant = CurrentIP.CurrentFunction.Constants[index];
+
+			Object o = PopStack();
+
+			GlobalTable[constant] = o;
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		public void DoGETGLOBAL(UInt32 instruction)
+		{
+			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			Object constant = CurrentIP.CurrentFunction.Constants[index];
+
+			PushStack(GlobalTable[constant]);
 
 			CurrentIP.InstructionIndex++;
 		}
