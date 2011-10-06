@@ -7,6 +7,39 @@ namespace Lamn
 {
 	class AST
 	{
+		public interface StatementVisitor
+		{
+			void Visit(LocalAssignmentStatement statement);
+			void Visit(LocalFunctionStatement statement);
+			void Visit(IfStatement statement);
+			void Visit(WhileStatement statement);
+			void Visit(DoStatement statement);
+			void Visit(ForStatement statement);
+			void Visit(FunctionCallStatement statement);
+			void Visit(AssignmentStatement statement);
+			void Visit(RepeatStatement statement);
+			void Visit(ReturnStatement statement);
+			void Visit(BreakStatement statement);
+			void Visit(FunctionStatement statement);
+		}
+
+		public interface ExpressionVisitor
+		{
+			void Visit(NameExpression expression);
+			void Visit(NumberExpression expression);
+			void Visit(StringExpression expression);
+			void Visit(BoolExpression expression);
+			void Visit(NilExpression expression);
+			void Visit(VarArgsExpression expression);
+			void Visit(UnOpExpression expression);
+			void Visit(BinOpExpression expression);
+			void Visit(FunctionExpression expression);
+			void Visit(LookupExpression expression);
+			void Visit(IndexExpression expression);
+			void Visit(FunctionApplicationExpression expression);
+			void Visit(Constructor expression);
+		}
+
 		public class Chunk
 		{
 			public List<Statement> Statements { get; private set; }
@@ -17,7 +50,9 @@ namespace Lamn
 			}
 		}
 
-		public class Statement { }
+		public abstract class Statement {
+			public abstract void Visit(StatementVisitor visitor);
+		}
 
 		public class LocalAssignmentStatement : Statement
 		{
@@ -28,6 +63,11 @@ namespace Lamn
 			{
 				Variables = variables;
 				Expressions = expressions;
+			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -41,6 +81,11 @@ namespace Lamn
 				Name = name;
 				Body = body;
 			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
 		public class IfStatement : Statement
@@ -50,6 +95,11 @@ namespace Lamn
 			public IfStatement(List<TestBlock> conditions)
 			{
 				Conditions = conditions;
+			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -63,6 +113,11 @@ namespace Lamn
 				Condition = condition;
 				Block = block;
 			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
 		public class DoStatement : Statement
@@ -72,6 +127,11 @@ namespace Lamn
 			public DoStatement(Chunk block)
 			{
 				Block = block;
+			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -85,6 +145,11 @@ namespace Lamn
 				Clause = clause;
 				Block = block;
 			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
 		public class FunctionCallStatement : Statement
@@ -94,6 +159,11 @@ namespace Lamn
 			public FunctionCallStatement(Expression expr)
 			{
 				Expr = expr;
+			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -106,6 +176,11 @@ namespace Lamn
 			{
 				Variables = variables;
 				Expressions = expressions;
+			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -148,6 +223,11 @@ namespace Lamn
 				Block = block;
 				Condition = condition;
 			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
 		public class ReturnStatement : Statement
@@ -158,9 +238,19 @@ namespace Lamn
 			{
 				Expressions = expressions;
 			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
-		public class BreakStatement : Statement { }
+		public class BreakStatement : Statement {
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
+		}
 
 		public class FunctionStatement : Statement
 		{
@@ -175,6 +265,11 @@ namespace Lamn
 				FieldNames = FieldNames;
 				SelfName = selfName;
 				Body = body;
+			}
+
+			public override void Visit(StatementVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -214,7 +309,9 @@ namespace Lamn
 			}
 		}
 
-		public class Expression { }
+		public abstract class Expression {
+			public abstract void Visit(ExpressionVisitor visitor);
+		}
 
 		public class NameExpression : Expression
 		{
@@ -223,6 +320,11 @@ namespace Lamn
 			public NameExpression(String value)
 			{
 				Value = value;
+			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -234,6 +336,11 @@ namespace Lamn
 			{
 				Value = value;
 			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
 		public class StringExpression : Expression
@@ -243,6 +350,11 @@ namespace Lamn
 			public StringExpression(String value)
 			{
 				Value = value;
+			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -254,11 +366,28 @@ namespace Lamn
 			{
 				Value = value;
 			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
-		public class NilExpression : Expression { }
+		public class NilExpression : Expression
+		{
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
+		}
 
-		public class VarArgsExpression : Expression { }
+		public class VarArgsExpression : Expression
+		{
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
+		}
 
 		public class UnOpExpression : Expression
 		{
@@ -269,6 +398,11 @@ namespace Lamn
 			{
 				Op = op;
 				Expr = expr;
+			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -284,6 +418,11 @@ namespace Lamn
 				LeftExpr = leftExpr;
 				RightExpr = rightExpr;
 			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
 		public class FunctionExpression : Expression
@@ -293,6 +432,11 @@ namespace Lamn
 			public FunctionExpression(Body body)
 			{
 				Body = body;
+			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -306,6 +450,11 @@ namespace Lamn
 				Obj = obj;
 				Name = name;
 			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
 		public class IndexExpression : Expression
@@ -317,6 +466,11 @@ namespace Lamn
 			{
 				Obj = obj;
 				Index = index;
+			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 
@@ -330,6 +484,11 @@ namespace Lamn
 				Obj = obj;
 				Args = args;
 			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
 		}
 
 		public class Constructor : Expression
@@ -339,6 +498,11 @@ namespace Lamn
 			public Constructor(List<ConField> fields)
 			{
 				Fields = fields;
+			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
 			}
 		}
 

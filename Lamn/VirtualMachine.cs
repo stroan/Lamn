@@ -87,13 +87,13 @@ namespace Lamn
 		{
 			public UInt32[] Bytecodes { get; private set; }
 			public Object[] Constants { get; private set; }
-			public int Index { get; private set; }
+			public String Id { get; private set; }
 
-			public Function(UInt32[] bytecodes, Object[] constants, int index)
+			public Function(UInt32[] bytecodes, Object[] constants, String id)
 			{
 				Bytecodes = bytecodes;
 				Constants = constants;
-				Index = index;
+				Id = id;
 			}
 		}
 
@@ -172,11 +172,9 @@ namespace Lamn
 			GlobalTable = new Dictionary<Object, Object>();
 		}
 
-		public int RegisterFunction(String id, UInt32[] bytecodes, Object[] constants)
+		public void RegisterFunction(Function f)
 		{
-			int index = FunctionMap.Count;
-			FunctionMap.Add(id, new Function(bytecodes, constants, index));
-			return index;
+			FunctionMap.Add(f.Id, f);
 		}
 
 		public void Run()
