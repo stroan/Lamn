@@ -20,7 +20,8 @@ namespace Lamn
 			VirtualMachine vm = new VirtualMachine();
 
 			// Function foo
-			UInt32[] bytecodesFoo = { VirtualMachine.OpCodes.MakePOPVARGS(2),
+			UInt32[] bytecodesFoo = { VirtualMachine.OpCodes.MakePOPVARGS(1),
+									  VirtualMachine.OpCodes.MakeGETUPVAL(0),
 									  VirtualMachine.OpCodes.ADD,
 									  VirtualMachine.OpCodes.MakeRET(1) };
 			Object[] constantsFoo = { };
@@ -29,16 +30,18 @@ namespace Lamn
 
 			// Chunk body
 			UInt32[] bytecodes = { VirtualMachine.OpCodes.MakeLOADK(0),
+								   VirtualMachine.OpCodes.MakeCLOSEVAR(1),
 								   VirtualMachine.OpCodes.MakeLOADK(1),
-								   VirtualMachine.OpCodes.MakeLOADK(2),
-								   VirtualMachine.OpCodes.MakeCALL(2),
+								   VirtualMachine.OpCodes.MakeCLOSURE(2),
+								   VirtualMachine.OpCodes.MakePOPCLOSED(1),
+								   VirtualMachine.OpCodes.MakeCALL(1),
 								   VirtualMachine.OpCodes.MakePOPVARGS(1),
 								   VirtualMachine.OpCodes.MakeRET(1) };
-			Object[] constants = { 3.0, 2.0, new VirtualMachine.Closure(fooIndex) };
+			Object[] constants = { 3.0, 2.0, fooIndex };
 
 			int functionIndex = vm.RegisterFunction(bytecodes, constants);
 
-			VirtualMachine.Closure closure = new VirtualMachine.Closure(functionIndex);
+			VirtualMachine.Closure closure = new VirtualMachine.Closure(functionIndex, new VirtualMachine.StackCell[0]);
 			vm.PushStack(closure);
 			vm.Call();
 			vm.Run();

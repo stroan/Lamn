@@ -17,6 +17,12 @@ namespace Lamn
 
 			public const UInt32 POPVARGS = 0x05000000;
 
+			public const UInt32 CLOSEVARS = 0x06000000;
+			public const UInt32 POPCLOSED = 0x07000000;
+
+			public const UInt32 CLOSURE = 0x08000000;
+			public const UInt32 GETUPVAL = 0x09000000;
+
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
 			public const UInt32 OP2_MASK    = 0x00000FFF;
@@ -42,6 +48,26 @@ namespace Lamn
 			public static UInt32 MakeRET(int numArgs)
 			{
 				return RET | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakeCLOSEVAR(int numVars)
+			{
+				return CLOSEVARS | (((UInt32)numVars << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakePOPCLOSED(int numVars)
+			{
+				return POPCLOSED | (((UInt32)numVars << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakeCLOSURE(int index)
+			{
+				return CLOSURE | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakeGETUPVAL(int index)
+			{
+				return GETUPVAL | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
 			}
 		}
 
@@ -81,10 +107,12 @@ namespace Lamn
 		public class Closure
 		{
 			public int FunctionIndex { get; private set; }
+			public StackCell[] ClosedVars { get; private set; }
 
-			public Closure(int functionIndex)
+			public Closure(int functionIndex, StackCell[] closedVars)
 			{
 				FunctionIndex = functionIndex;
+				ClosedVars = closedVars;
 			}
 		}
 
@@ -92,15 +120,15 @@ namespace Lamn
 		{
 			public Function CurrentFunction { get; private set; }
 			public int InstructionIndex { get; set; }
-			public Stack<Object> ExpressionStack { get; set; }
+			public StackCell[] ClosedVars { get; private set; }
 
 			public UInt32 CurrentInstruction { get { return CurrentFunction.Bytecodes[InstructionIndex]; } }
 
-			public InstructionPointer(Function currentFunction, int instructionIndex)
+			public InstructionPointer(Function currentFunction, StackCell[] closedVars, int instructionIndex)
 			{
 				CurrentFunction = currentFunction;
+				ClosedVars = closedVars;
 				InstructionIndex = instructionIndex;
-				ExpressionStack = new Stack<object>();
 			}
 		}
 
@@ -116,6 +144,8 @@ namespace Lamn
 		private StackCell[] Stack { get; set; }
 		private InstructionPointer CurrentIP { get; set; }
 
+		private LinkedList<StackCell> ClosureStack { get; set; }
+
 		private const int stackSize = 512;
 
 		private int baseIndex = 0;
@@ -125,6 +155,7 @@ namespace Lamn
 		{
 			FunctionMap = new List<Function>();
 			Stack = new StackCell[stackSize];
+			ClosureStack = new LinkedList<StackCell>();
 		}
 
 		public int RegisterFunction(UInt32[] bytecodes, Object[] constants)
@@ -157,6 +188,18 @@ namespace Lamn
 					case OpCodes.POPVARGS:
 						DoPOPVARGS(currentInstruction);
 						break;
+					case OpCodes.CLOSEVARS:
+						DoCLOSEVARS(currentInstruction);
+						break;
+					case OpCodes.POPCLOSED:
+						DoPOPCLOSED(currentInstruction);
+						break;
+					case OpCodes.CLOSURE:
+						DoCLOSURE(currentInstruction);
+						break;
+					case OpCodes.GETUPVAL:
+						DoGETUPVAL(currentInstruction);
+						break;
 					default:
 						throw new VMException();
 				}
@@ -171,6 +214,12 @@ namespace Lamn
 		#region Manipulate Stacks
 		public void PushStack(Object o) {
 			Stack[stackIndex] = new StackCell() { contents = o };
+			stackIndex++;
+		}
+
+		public void PushStackUnboxed(StackCell s)
+		{
+			Stack[stackIndex] = s;
 			stackIndex++;
 		}
 
@@ -252,8 +301,9 @@ namespace Lamn
 
 			if (o is Closure)
 			{
-				Function f = FunctionMap[((Closure)o).FunctionIndex];
-				newIP = new InstructionPointer(f, 0);
+				Closure closure = (Closure)o;
+				Function f = FunctionMap[(closure).FunctionIndex];
+				newIP = new InstructionPointer(f, closure.ClosedVars, 0);
 			}
 			else
 			{
@@ -278,6 +328,51 @@ namespace Lamn
 			{
 				PushStack(vargs.PopArg());
 			}
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoCLOSEVARS(UInt32 instruction)
+		{
+			int numVars = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			for (int i = 0; i < numVars; i++)
+			{
+				ClosureStack.AddFirst(Stack[(stackIndex - 1) - i]);
+			}
+				
+			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoPOPCLOSED(UInt32 instruction)
+		{
+			int numVars = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			for (int i = 0; i < numVars; i++)
+			{
+				ClosureStack.RemoveFirst();
+			}
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		public void DoCLOSURE(UInt32 instruction)
+		{
+			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			int functionIndex = (int)CurrentIP.CurrentFunction.Constants[index];
+			StackCell[] closure = ClosureStack.ToArray();
+
+			PushStack(new Closure(functionIndex, closure));
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		public void DoGETUPVAL(UInt32 instruction)
+		{
+			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			PushStackUnboxed(CurrentIP.ClosedVars[index]);
 
 			CurrentIP.InstructionIndex++;
 		}
