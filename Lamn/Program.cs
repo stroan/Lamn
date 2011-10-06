@@ -9,7 +9,7 @@ namespace Lamn
 	{
 		static void Main(string[] args)
 		{
-			String input2 = "function foo(a,b) return a + b end return foo(1,2)";
+			String input2 = "function foo() return end";
 
 			Lexer lexer = new Lexer();
 			List<Lexer.Lexeme> output = lexer.lex(input2);
@@ -24,6 +24,11 @@ namespace Lamn
 
 			Compiler compiler = new Compiler();
 			List<VirtualMachine.Function> compiledFunctions = compiler.CompileAST(outpu2);
+
+			foreach (VirtualMachine.Function function in compiledFunctions)
+			{
+				function.Print();
+			}
 
 			// Function foo
 			UInt32[] bytecodesFoo = { VirtualMachine.OpCodes.MakePOPVARGS(1),

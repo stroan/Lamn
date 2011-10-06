@@ -237,6 +237,11 @@ namespace Lamn
 			public ReturnStatement(List<Expression> expressions)
 			{
 				Expressions = expressions;
+
+				if (Expressions == null)
+				{
+					Expressions = new List<Expression>();
+				}
 			}
 
 			public override void Visit(StatementVisitor visitor)

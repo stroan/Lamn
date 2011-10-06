@@ -95,6 +95,71 @@ namespace Lamn
 				Constants = constants;
 				Id = id;
 			}
+
+			public void Print()
+			{
+				System.Console.WriteLine("Function " + Id);
+				for (int i = 0; i < Bytecodes.Length; i++)
+				{
+					UInt32 instruction = Bytecodes[i];
+
+					String name;
+					UInt32 opCode = instruction & OpCodes.OPCODE_MASK;
+					switch (opCode)
+					{
+						case OpCodes.LOADK:
+							name = "LOADK";
+							break;
+						case OpCodes.ADD:
+							name = "ADD";
+							break;
+						case OpCodes.RET:
+							name = "RET";
+							break;
+						case OpCodes.CALL:
+							name = "CALL";
+							break;
+						case OpCodes.POPVARGS:
+							name = "POPVARGS";
+							break;
+						case OpCodes.CLOSEVARS:
+							name = "CLOSEVARS";
+							break;
+						case OpCodes.POPCLOSED:
+							name = "POPCLOSED";
+							break;
+						case OpCodes.CLOSURE:
+							name = "CLOSURE";
+							break;
+						case OpCodes.GETUPVAL:
+							name = "GETUPVAL";
+							break;
+						case OpCodes.GETGLOBAL:
+							name = "GETGLOBAL";
+							break;
+						case OpCodes.PUTGLOBAL:
+							name = "PUTGLOBAL";
+							break;
+						default:
+							throw new VMException();
+					}
+
+					UInt32 op1 = (instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT;
+					UInt32 op2 = (instruction & OpCodes.OP2_MASK) >> OpCodes.OP2_SHIFT;
+
+					System.Console.WriteLine(String.Format("0x{0:x4} {1,10} {2:d} {3:d}", new Object[] {i, name, op1, op2}));
+				}
+				System.Console.WriteLine("");
+
+				System.Console.WriteLine(String.Format("Constants: {0:d}", Constants.Length));
+				for (int i = 0; i < Constants.Length; i++)
+				{
+					System.Console.WriteLine(String.Format("{0:d}: {1,-5}", i, Constants[i].ToString()));
+				}
+
+				System.Console.WriteLine("");
+				System.Console.WriteLine("");
+			}
 		}
 
 		public class VarArgs
