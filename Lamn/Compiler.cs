@@ -42,7 +42,30 @@ namespace Lamn
 
 			public void Visit(AST.LocalAssignmentStatement statement)
 			{
-				throw new NotImplementedException();
+				int numVars = statement.Variables.Count;
+
+				int initialStackPosition = State.stackPosition;
+				for (int i = 0; i < statement.Expressions.Count; i++)
+				{
+					int numResults = 1;
+					if (i == statement.Expressions.Count - 1)
+					{
+						numResults = numVars - i;
+					}
+					statement.Expressions[i].Visit(new ExpressionCompiler(State, numResults));
+				}
+
+				int nowStackPosition = State.stackPosition;
+				for (int i = 0; i < statement.Expressions.Count - (nowStackPosition - initialStackPosition); i++)
+				{
+					State.constants.Add(null);
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.constants.IndexOf(null)));
+				}
+
+				for (int i = 0; i < statement.Variables.Count; i++)
+				{
+					State.stackVars[statement.Variables[i]] = initialStackPosition + i;
+				}
 			}
 
 			public void Visit(AST.LocalFunctionStatement statement)
@@ -280,7 +303,9 @@ namespace Lamn
 
 			public void Visit(AST.NumberExpression expression)
 			{
-				throw new NotImplementedException();
+				State.constants.Add(expression.Value);
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.constants.IndexOf(expression.Value)));
+				State.stackPosition++;
 			}
 
 			public void Visit(AST.StringExpression expression)
