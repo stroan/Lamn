@@ -18,7 +18,7 @@ namespace Lamn
 			public Dictionary<String, int> stackVars = new Dictionary<String, int>();
 		}
 
-		public class ChunkCompiler : AST.StatementVisitor, AST.ExpressionVisitor
+		public class ChunkCompiler : AST.StatementVisitor
 		{
 			private bool hasReturned = false;
 
@@ -77,7 +77,30 @@ namespace Lamn
 
 			public void Visit(AST.AssignmentStatement statement)
 			{
-				throw new NotImplementedException();
+				int numVars = statement.Variables.Count;
+
+				int initialStackPosition = State.stackPosition;
+				for (int i = 0; i < statement.Expressions.Count; i++)
+				{
+					int numResults = 1;
+					if (i == statement.Expressions.Count - 1)
+					{
+						numResults = numVars - i;
+					}
+					statement.Expressions[i].Visit(new ExpressionCompiler(State, numResults));
+				}
+
+				int nowStackPosition = State.stackPosition;
+				for (int i = 0; i < statement.Expressions.Count - (nowStackPosition - initialStackPosition); i++)
+				{
+					State.constants.Add(null);
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.constants.IndexOf(null)));
+				}
+
+				for (int i = statement.Variables.Count - 1; i >= 0; i--)
+				{
+					statement.Variables[i].Visit(new AssignerExpressionCompiler(State));
+				}
 			}
 
 			public void Visit(AST.RepeatStatement statement)
@@ -89,7 +112,7 @@ namespace Lamn
 			{
 				foreach (AST.Expression expr in statement.Expressions)
 				{
-					expr.Visit(this);
+					expr.Visit(new ExpressionCompiler(State));
 				}
 
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeRET(statement.Expressions.Count));
@@ -118,6 +141,127 @@ namespace Lamn
 				State.stackPosition--;
 			}
 			#endregion
+
+			#region Helper Members
+			private void AddConstant(Object c)
+			{
+				if (State.constants.Contains(c)) { return; }
+				State.constants.Add(c);
+			}
+
+			private int GetConstantIndex(Object c)
+			{
+				return State.constants.IndexOf(c);
+			}
+			#endregion
+		}
+
+		public class AssignerExpressionCompiler : AST.ExpressionVisitor
+		{
+			public CompilerState State { get; private set; }
+			public int NumResults { get; private set; }
+
+			public AssignerExpressionCompiler(CompilerState state)
+			{
+				State = state;
+				NumResults = 1;
+			}
+
+			#region ExpressionVisitor Members
+
+			public void Visit(AST.NameExpression expression)
+			{
+				if (State.stackVars.ContainsKey(expression.Value))
+				{
+					throw new NotImplementedException();
+				}
+				else
+				{
+					State.constants.Add(expression.Value);
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(State.constants.IndexOf(expression.Value)));
+					State.stackPosition--;
+				}
+			}
+
+			public void Visit(AST.NumberExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.StringExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.BoolExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.NilExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.VarArgsExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.UnOpExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.BinOpExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.FunctionExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.LookupExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.IndexExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.FunctionApplicationExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.Constructor expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			#endregion
+		}
+
+		public class ExpressionCompiler : AST.ExpressionVisitor
+		{
+			public CompilerState State { get; private set; }
+			public int NumResults { get; private set; }
+
+			public ExpressionCompiler(CompilerState state)
+			{
+				State = state;
+				NumResults = 1;
+			}
+
+			public ExpressionCompiler(CompilerState state, int numResults)
+			{
+				State = state;
+				NumResults = numResults;
+			}
 
 			#region ExpressionVisitor Members
 
@@ -194,19 +338,6 @@ namespace Lamn
 				throw new NotImplementedException();
 			}
 
-			#endregion
-
-			#region Helper Members
-			private void AddConstant(Object c)
-			{
-				if (State.constants.Contains(c)) { return; }
-				State.constants.Add(c);
-			}
-
-			private int GetConstantIndex(Object c)
-			{
-				return State.constants.IndexOf(c);
-			}
 			#endregion
 		}
 
