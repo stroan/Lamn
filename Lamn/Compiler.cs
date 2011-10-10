@@ -12,10 +12,16 @@ namespace Lamn
 			public List<UInt32> bytecodes = new List<UInt32>();
 			public List<Object> constants = new List<Object>();
 			public List<VirtualMachine.Function> childFunctions = new List<VirtualMachine.Function>();
+
+			public int stackPosition = 0;
+
+			public Dictionary<String, int> stackVars = new Dictionary<String, int>();
 		}
 
 		public class ChunkCompiler : AST.StatementVisitor, AST.ExpressionVisitor
 		{
+			private bool hasReturned = false;
+
 			public CompilerState State { get; set; }
 
 			public ChunkCompiler(AST.Chunk chunk, CompilerState state)
@@ -24,6 +30,11 @@ namespace Lamn
 
 				foreach (AST.Statement statement in chunk.Statements) {
 					statement.Visit(this);
+				}
+
+				if (!hasReturned)
+				{
+					state.bytecodes.Add(VirtualMachine.OpCodes.MakeRET(0));
 				}
 			}
 
@@ -82,6 +93,8 @@ namespace Lamn
 				}
 
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeRET(statement.Expressions.Count));
+
+				hasReturned = true;
 			}
 
 			public void Visit(AST.BreakStatement statement)
@@ -93,7 +106,7 @@ namespace Lamn
 			{
 				FunctionCompiler funcCompiler = new FunctionCompiler(statement.Body);
 
-				VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString());
+				VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
 				State.childFunctions.Add(function);
 
 				AddConstant(function.Id);
@@ -101,6 +114,8 @@ namespace Lamn
 
 				AddConstant(statement.MainName);
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(GetConstantIndex(statement.MainName)));
+
+				State.stackPosition--;
 			}
 			#endregion
 
@@ -108,7 +123,15 @@ namespace Lamn
 
 			public void Visit(AST.NameExpression expression)
 			{
-				throw new NotImplementedException();
+				if (State.stackVars.ContainsKey(expression.Value))
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - State.stackVars[expression.Value]));
+					State.stackPosition++;
+				}
+				else
+				{
+					throw new NotImplementedException();
+				}
 			}
 
 			public void Visit(AST.NumberExpression expression)
@@ -195,19 +218,37 @@ namespace Lamn
 			public FunctionCompiler(AST.Body body) {
 				State = new CompilerState();
 
+				State.stackPosition = 1;
+
+				if (body.ParamList.NamedParams.Count > 0)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPVARGS(body.ParamList.NamedParams.Count));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSEVAR(body.ParamList.NamedParams.Count));
+					State.stackPosition += body.ParamList.NamedParams.Count;
+				}
+
+				int stackIndex = 1;
+				foreach (String param in body.ParamList.NamedParams)
+				{
+					State.stackVars[param] = stackIndex;
+					stackIndex++;
+				}
+
+				if (body.ParamList.HasVarArgs)
+				{
+					State.stackVars["..."] = 0;
+				}
+
 				new ChunkCompiler(body.Chunk, State);
 
 				Id = Guid.NewGuid().ToString();
 			}
 		}
 
-		public List<VirtualMachine.Function> CompileAST(AST ast)
+		public VirtualMachine.Function CompileAST(AST ast)
 		{
 			ChunkCompiler chunkCompiler = new ChunkCompiler(ast.Contents, new CompilerState());
-			List<VirtualMachine.Function> functions = new List<VirtualMachine.Function>();
-			functions.Add(new VirtualMachine.Function(chunkCompiler.State.bytecodes.ToArray(), chunkCompiler.State.constants.ToArray(), Guid.NewGuid().ToString()));
-			functions.AddRange(chunkCompiler.State.childFunctions);
-			return functions;
+			return new VirtualMachine.Function(chunkCompiler.State.bytecodes.ToArray(), chunkCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), chunkCompiler.State.childFunctions);
 		}
 	}
 }

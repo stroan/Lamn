@@ -25,6 +25,9 @@ namespace Lamn
 			public const UInt32 GETGLOBAL = 0x0A000000;
 			public const UInt32 PUTGLOBAL = 0x0B000000;
 
+			public const UInt32 GETSTACK = 0x0C000000;
+			public const UInt32 PUTSTACK = 0x0D000000;
+
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
 			public const UInt32 OP2_MASK    = 0x00000FFF;
@@ -81,6 +84,16 @@ namespace Lamn
 			{
 				return PUTGLOBAL | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
 			}
+
+			public static UInt32 MakeGETSTACK(int index)
+			{
+				return GETSTACK | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakePUTSTACK(int index)
+			{
+				return PUTSTACK | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
+			}
 		}
 
 		public class Function
@@ -89,11 +102,19 @@ namespace Lamn
 			public Object[] Constants { get; private set; }
 			public String Id { get; private set; }
 
-			public Function(UInt32[] bytecodes, Object[] constants, String id)
+			public Dictionary<String, Function> ChildFunctions { get; private set; }
+
+			public Function(UInt32[] bytecodes, Object[] constants, String id, List<Function> children)
 			{
 				Bytecodes = bytecodes;
 				Constants = constants;
 				Id = id;
+
+				ChildFunctions = new Dictionary<string, Function>();
+				foreach (Function child in children)
+				{
+					ChildFunctions[child.Id] = child;
+				}
 			}
 
 			public void Print()
@@ -140,6 +161,12 @@ namespace Lamn
 						case OpCodes.PUTGLOBAL:
 							name = "PUTGLOBAL";
 							break;
+						case OpCodes.GETSTACK:
+							name = "GETSTACK";
+							break;
+						case OpCodes.PUTSTACK:
+							name = "PUTSTACK";
+							break;
 						default:
 							throw new VMException();
 					}
@@ -159,6 +186,11 @@ namespace Lamn
 
 				System.Console.WriteLine("");
 				System.Console.WriteLine("");
+
+				foreach (Function child in ChildFunctions.Values)
+				{
+					child.Print();
+				}
 			}
 		}
 
@@ -183,12 +215,12 @@ namespace Lamn
 
 		public class Closure
 		{
-			public String FunctionId { get; private set; }
+			public Function Func { get; private set; }
 			public StackCell[] ClosedVars { get; private set; }
 
-			public Closure(String functionId, StackCell[] closedVars)
+			public Closure(Function func, StackCell[] closedVars)
 			{
-				FunctionId = functionId;
+				Func = func;
 				ClosedVars = closedVars;
 			}
 		}
@@ -282,6 +314,12 @@ namespace Lamn
 						break;
 					case OpCodes.PUTGLOBAL:
 						DoPUTGLOBAL(currentInstruction);
+						break;
+					case OpCodes.GETSTACK:
+						DoGETSTACK(currentInstruction);
+						break;
+					case OpCodes.PUTSTACK:
+						DoPUTSTACK(currentInstruction);
 						break;
 					default:
 						throw new VMException();
@@ -385,7 +423,7 @@ namespace Lamn
 			if (o is Closure)
 			{
 				Closure closure = (Closure)o;
-				Function f = FunctionMap[(closure).FunctionId];
+				Function f = closure.Func;
 				newIP = new InstructionPointer(f, closure.ClosedVars, 0);
 			}
 			else
@@ -446,7 +484,7 @@ namespace Lamn
 			String functionId = (String)CurrentIP.CurrentFunction.Constants[index];
 			StackCell[] closure = ClosureStack.ToArray();
 
-			PushStack(new Closure(functionId, closure));
+			PushStack(new Closure(CurrentIP.CurrentFunction.ChildFunctions[functionId], closure));
 
 			CurrentIP.InstructionIndex++;
 		}
@@ -480,6 +518,30 @@ namespace Lamn
 			Object constant = CurrentIP.CurrentFunction.Constants[index];
 
 			PushStack(GlobalTable[constant]);
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		public void DoPUTSTACK(UInt32 instruction)
+		{
+			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			StackCell s = Stack[stackIndex - index];
+
+			Object o = PopStack();
+
+			s.contents = s;
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		public void DoGETSTACK(UInt32 instruction)
+		{
+			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			Object o = GetStackAtIndex(stackIndex - index);
+
+			PushStack(o);
 
 			CurrentIP.InstructionIndex++;
 		}
