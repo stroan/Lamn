@@ -402,7 +402,7 @@ namespace Lamn
 			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 			for (int i = 0; i < numArgs; i++)
 			{
-				args.Args.AddLast(PopStack());
+				args.Args.AddFirst(PopStack());
 			}
 
 			while (stackIndex > baseIndex)
@@ -430,7 +430,7 @@ namespace Lamn
 			VarArgs args = new VarArgs();
 			for (int i = 0; i < numArgs; i++)
 			{
-				args.Args.AddLast(PopStack());
+				args.Args.AddFirst(PopStack());
 			}
 			
 			InstructionPointer newIP = null;
