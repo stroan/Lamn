@@ -56,10 +56,11 @@ namespace Lamn
 				}
 
 				int nowStackPosition = State.stackPosition;
-				for (int i = 0; i < statement.Expressions.Count - (nowStackPosition - initialStackPosition); i++)
+				for (int i = 0; i < numVars - (nowStackPosition - initialStackPosition); i++)
 				{
 					State.constants.Add(null);
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.constants.IndexOf(null)));
+					State.stackPosition++;
 				}
 
 				for (int i = 0; i < statement.Variables.Count; i++)
@@ -95,7 +96,7 @@ namespace Lamn
 
 			public void Visit(AST.FunctionCallStatement statement)
 			{
-				throw new NotImplementedException();
+				statement.Expr.Visit(new ExpressionCompiler(State, 0));
 			}
 
 			public void Visit(AST.AssignmentStatement statement)
@@ -135,7 +136,13 @@ namespace Lamn
 			{
 				foreach (AST.Expression expr in statement.Expressions)
 				{
-					expr.Visit(new ExpressionCompiler(State));
+					ExpressionCompiler compiler = new ExpressionCompiler(State, 1);
+					if (expr == statement.Expressions.Last())
+					{
+						compiler = new ExpressionCompiler(State, 0);
+					}
+
+					expr.Visit(compiler);
 				}
 
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeRET(statement.Expressions.Count));
@@ -297,7 +304,9 @@ namespace Lamn
 				}
 				else
 				{
-					throw new NotImplementedException();
+					State.constants.Add(expression.Value);
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETGLOBAL(State.constants.IndexOf(expression.Value)));
+					State.stackPosition++;
 				}
 			}
 
@@ -335,7 +344,19 @@ namespace Lamn
 
 			public void Visit(AST.BinOpExpression expression)
 			{
-				throw new NotImplementedException();
+				expression.LeftExpr.Visit(this);
+				expression.RightExpr.Visit(this);
+
+				if (expression.Op.Equals("+"))
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.ADD);
+				}
+				else
+				{
+					throw new NotImplementedException();
+				}
+
+				State.stackPosition--;
 			}
 
 			public void Visit(AST.FunctionExpression expression)
@@ -355,7 +376,33 @@ namespace Lamn
 
 			public void Visit(AST.FunctionApplicationExpression expression)
 			{
-				throw new NotImplementedException();
+				int funcIndex = State.stackPosition;
+				expression.Obj.Visit(new ExpressionCompiler(State, 1));
+
+				foreach (AST.Expression expr in expression.Args)
+				{
+					ExpressionCompiler compiler = new ExpressionCompiler(State, 1);
+					if (expr == expression.Args.Last())
+					{
+						compiler = new ExpressionCompiler(State, 0);
+					}
+
+					expr.Visit(compiler);
+				}
+
+				int currentIndex = State.stackPosition;
+
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(currentIndex - funcIndex));
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCALL(expression.Args.Count));
+
+				if (NumResults > 0)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPVARGS(NumResults, true));
+					State.stackPosition = funcIndex + NumResults;
+				}
+				else {
+					State.stackPosition = funcIndex + 1;
+				}
 			}
 
 			public void Visit(AST.Constructor expression)

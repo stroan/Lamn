@@ -50,6 +50,16 @@ namespace Lamn
 				return POPVARGS | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK);
 			}
 
+			public static UInt32 MakePOPVARGS(int numArgs, bool remVarArgObj)
+			{
+				UInt32 retVal = POPVARGS | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK);
+				if (remVarArgObj)
+				{
+					retVal = retVal | ((1 << OP2_SHIFT) & OP2_MASK);
+				}
+				return retVal;
+			}
+
 			public static UInt32 MakeRET(int numArgs)
 			{
 				return RET | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK);
@@ -181,7 +191,12 @@ namespace Lamn
 				System.Console.WriteLine(String.Format("Constants: {0:d}", Constants.Length));
 				for (int i = 0; i < Constants.Length; i++)
 				{
-					System.Console.WriteLine(String.Format("{0:d}: {1,-5}", i, Constants[i].ToString()));
+					String constantStr = "null";
+					if (Constants[i] != null)
+					{
+						constantStr = Constants[i].ToString();
+					}
+					System.Console.WriteLine(String.Format("{0:d}: {1,-5}", i, constantStr));
 				}
 
 				System.Console.WriteLine("");
