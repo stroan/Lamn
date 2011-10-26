@@ -20,6 +20,16 @@ namespace Lamn
 			public int closureStackPosition = 0;
 			public Dictionary<String, int> closedVars = new Dictionary<String, int>();
 			public Dictionary<String, int> newClosedVars = new Dictionary<String, int>();
+
+			public int AddConstant(Object o)
+			{
+				if (!constants.Contains(o))
+				{
+					constants.Add(o);
+				}
+
+				return constants.IndexOf(o);
+			}
 		}
 
 		public class ChunkCompiler : AST.StatementVisitor
@@ -62,8 +72,7 @@ namespace Lamn
 				int nowStackPosition = State.stackPosition;
 				for (int i = 0; i < numVars - (nowStackPosition - initialStackPosition); i++)
 				{
-					State.constants.Add(null);
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.constants.IndexOf(null)));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(null)));
 					State.stackPosition++;
 				}
 
@@ -128,8 +137,7 @@ namespace Lamn
 				int nowStackPosition = State.stackPosition;
 				for (int i = 0; i < statement.Expressions.Count - (nowStackPosition - initialStackPosition); i++)
 				{
-					State.constants.Add(null);
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.constants.IndexOf(null)));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(null)));
 				}
 
 				for (int i = statement.Variables.Count - 1; i >= 0; i--)
@@ -227,8 +235,7 @@ namespace Lamn
 				}
 				else
 				{
-					State.constants.Add(expression.Value);
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(State.constants.IndexOf(expression.Value)));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(State.AddConstant(expression.Value)));
 					State.stackPosition--;
 				}
 			}
@@ -329,23 +336,20 @@ namespace Lamn
 				}
 				else
 				{
-					State.constants.Add(expression.Value);
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETGLOBAL(State.constants.IndexOf(expression.Value)));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETGLOBAL(State.AddConstant(expression.Value)));
 					State.stackPosition++;
 				}
 			}
 
 			public void Visit(AST.NumberExpression expression)
 			{
-				State.constants.Add(expression.Value);
-				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.constants.IndexOf(expression.Value)));
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(expression.Value)));
 				State.stackPosition++;
 			}
 
 			public void Visit(AST.StringExpression expression)
 			{
-				State.constants.Add(expression.Value);
-				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.constants.IndexOf(expression.Value)));
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(expression.Value)));
 				State.stackPosition++;
 			}
 
