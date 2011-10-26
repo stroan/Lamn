@@ -1,4 +1,4 @@
-
+--[[
 -------------------------------------------
 -- Simple function calling test
 
@@ -34,5 +34,25 @@ test2a = 2
 
 print("Should output:\t4")
 print("Actual output:", test2(2))
+
+print("===============================")
+
+-------------------------------------------
+-- Simple closure test2
+
+print("Simple closure test2")
+
+local test3b = "dummy"
+local test3c = "dummy"
+local test3a = 1
+local test3d = "dummy"
+
+function test3()
+  test3a = test3a + 1
+  return test3a
+end
+
+print("Should output:\t2\t3\t4")
+print("Actual output:", test3(), test3(), test3())
 
 print("===============================")

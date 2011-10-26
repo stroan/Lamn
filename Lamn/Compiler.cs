@@ -221,6 +221,10 @@ namespace Lamn
 				{
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTSTACK(State.stackPosition - State.stackVars[expression.Value]));
 				}
+				else if (State.closedVars.ContainsKey(expression.Value))
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTUPVAL(State.closureStackPosition - State.closedVars[expression.Value]));
+				}
 				else
 				{
 					State.constants.Add(expression.Value);
@@ -320,7 +324,7 @@ namespace Lamn
 				}
 				else if (State.closedVars.ContainsKey(expression.Value))
 				{
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETUPVAL(State.closedVars[expression.Value]));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETUPVAL(State.closureStackPosition - State.closedVars[expression.Value]));
 					State.stackPosition++;
 				}
 				else

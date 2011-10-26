@@ -21,12 +21,13 @@ namespace Lamn
 			public const UInt32 POPCLOSED = 0x07000000;
 			public const UInt32 CLOSURE = 0x08000000;
 			public const UInt32 GETUPVAL = 0x09000000;
+			public const UInt32 PUTUPVAL = 0x0A000000;
 
-			public const UInt32 GETGLOBAL = 0x0A000000;
-			public const UInt32 PUTGLOBAL = 0x0B000000;
+			public const UInt32 GETGLOBAL = 0x0B000000;
+			public const UInt32 PUTGLOBAL = 0x0C000000;
 
-			public const UInt32 GETSTACK = 0x0C000000;
-			public const UInt32 PUTSTACK = 0x0D000000;
+			public const UInt32 GETSTACK = 0x0D000000;
+			public const UInt32 PUTSTACK = 0x0E000000;
 
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
@@ -83,6 +84,11 @@ namespace Lamn
 			public static UInt32 MakeGETUPVAL(int index)
 			{
 				return GETUPVAL | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakePUTUPVAL(int index)
+			{
+				return PUTUPVAL | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
 			}
 
 			public static UInt32 MakeGETGLOBAL(int index)
@@ -166,6 +172,9 @@ namespace Lamn
 							break;
 						case OpCodes.GETUPVAL:
 							name = "GETUPVAL";
+							break;
+						case OpCodes.PUTUPVAL:
+							name = "PUTUPVAL";
 							break;
 						case OpCodes.GETGLOBAL:
 							name = "GETGLOBAL";
@@ -353,6 +362,9 @@ namespace Lamn
 						break;
 					case OpCodes.GETUPVAL:
 						DoGETUPVAL(currentInstruction);
+						break;
+					case OpCodes.PUTUPVAL:
+						DoPUTUPVAL(currentInstruction);
 						break;
 					case OpCodes.GETGLOBAL:
 						DoGETGLOBAL(currentInstruction);
@@ -569,7 +581,18 @@ namespace Lamn
 		{
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
-			PushStackUnboxed(CurrentIP.ClosedVars[index]);
+			PushStack(CurrentIP.ClosedVars[index - 1].contents);
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		public void DoPUTUPVAL(UInt32 instruction)
+		{
+			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			Object o = PopStack();
+
+			CurrentIP.ClosedVars[index - 1].contents = o;
 
 			CurrentIP.InstructionIndex++;
 		}
