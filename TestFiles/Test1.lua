@@ -73,6 +73,4 @@ end
 print("Should output:\thello world\t5")
 print("Actual output:", test4(5)())
 
-return test4(5)()
-
 print("===============================")
