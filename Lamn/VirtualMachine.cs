@@ -226,6 +226,34 @@ namespace Lamn
 				Args.RemoveFirst();
 				return first;
 			}
+
+			public void PushArg(Object o)
+			{
+				if (o is VarArgs)
+				{
+					VarArgs v = (VarArgs)o;
+					Args.AddFirst(v.Args.First);
+				}
+				else
+				{
+					Args.AddFirst(o);
+				}
+			}
+
+			public void PushLastArg(Object o)
+			{
+				if (o is VarArgs)
+				{
+					VarArgs v = (VarArgs)o;
+					foreach (Object va in v.Args.Reverse()) {
+						PushArg(va);
+					}
+				}
+				else
+				{
+					PushArg(o);
+				}
+			}
 		}
 
 		public class Closure
@@ -402,7 +430,14 @@ namespace Lamn
 			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 			for (int i = 0; i < numArgs; i++)
 			{
-				args.Args.AddFirst(PopStack());
+				if (i == 0)
+				{
+					args.PushLastArg(PopStack());
+				}
+				else
+				{
+					args.PushArg(PopStack());
+				}
 			}
 
 			while (stackIndex > baseIndex)
