@@ -411,7 +411,6 @@ namespace Lamn
 
 				int currentIndex = State.stackPosition;
 
-				State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(currentIndex - funcIndex));
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCALL(expression.Args.Count));
 
 				if (NumResults > 0)

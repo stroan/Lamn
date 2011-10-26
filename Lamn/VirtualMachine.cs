@@ -106,6 +106,8 @@ namespace Lamn
 			}
 		}
 
+		public delegate VarArgs NativeFuncDelegate(VarArgs input);
+
 		public class Function
 		{
 			public UInt32[] Bytecodes { get; private set; }
@@ -375,6 +377,11 @@ namespace Lamn
 			DoCALL(0);
 		}
 
+		public void PutGlobal(String name, NativeFuncDelegate func) 
+		{
+			GlobalTable[name] = func;
+		}
+
 		#region Manipulate Stacks
 		public void PushStack(Object o) {
 			Stack[stackIndex] = new StackCell() { contents = o };
@@ -458,35 +465,48 @@ namespace Lamn
 
 		private void DoCALL(UInt32 instruction)
 		{
-			Object o = PopStack();
-
 			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
 			VarArgs args = new VarArgs();
 			for (int i = 0; i < numArgs; i++)
 			{
-				args.Args.AddFirst(PopStack());
+				if (i == 0) {
+					args.PushLastArg(PopStack());
+				}
+				else {
+					args.PushArg(PopStack());
+				}
 			}
-			
-			InstructionPointer newIP = null;
 
+			Object o = PopStack();
+			
 			if (o is Closure)
 			{
 				Closure closure = (Closure)o;
 				Function f = closure.Func;
+
+				InstructionPointer newIP = null;
 				newIP = new InstructionPointer(f, closure.ClosedVars, 0);
+
+				PushStack(CurrentIP);
+				PushStack(baseIndex);
+				baseIndex = stackIndex - 1;
+				PushStack(args);
+
+				CurrentIP = newIP;
+			}
+			else if (o is NativeFuncDelegate)
+			{
+				NativeFuncDelegate nativeFunc = (NativeFuncDelegate)o;
+				VarArgs returnArgs = nativeFunc(args);
+				PushStack(returnArgs);
+
+				CurrentIP.InstructionIndex++;
 			}
 			else
 			{
 				throw new VMException();
 			}
-
-			PushStack(CurrentIP);
-			PushStack(baseIndex);
-			baseIndex = stackIndex - 1;
-			PushStack(args);
-
-			CurrentIP = newIP;
 		}
 
 		private void DoPOPVARGS(UInt32 instruction)

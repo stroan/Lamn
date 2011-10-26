@@ -9,7 +9,7 @@ namespace Lamn
 	{
 		static void Main(string[] args)
 		{
-			String input2 = "local z, z1, z2 = 100, 200, 300 ; function foo(a, b) local x,y = a,a ; return a + b, y, z end ; return foo(1,2)";
+			String input2 = System.IO.File.ReadAllText("../../../TestFiles/Test1.lua");
 
 			Lexer lexer = new Lexer();
 			List<Lexer.Lexeme> output = lexer.lex(input2);
@@ -18,9 +18,7 @@ namespace Lamn
 			AST outpu2 = parser.Parse();
 
 			VirtualMachine vm = new VirtualMachine();
-
-			String fooId = Guid.NewGuid().ToString();
-			String mainId = Guid.NewGuid().ToString();
+			vm.PutGlobal("print", new VirtualMachine.NativeFuncDelegate(printFunc));
 
 			Compiler compiler = new Compiler();
 			VirtualMachine.Function compiledFunctions = compiler.CompileAST(outpu2);
@@ -32,7 +30,27 @@ namespace Lamn
 			vm.Call();
 			vm.Run();
 
+			VirtualMachine.VarArgs returnValue = (VirtualMachine.VarArgs)vm.PopStack();
+
 			return;
+		}
+
+		static VirtualMachine.VarArgs printFunc(VirtualMachine.VarArgs input)
+		{
+			foreach (Object o in input.Args)
+			{
+				if (o is Double)
+				{
+					System.Console.Write((Double)o);
+				}
+				else
+				{
+					System.Console.Write("[Unknown]");
+				}
+				System.Console.Write("\t");
+			}
+
+			return new VirtualMachine.VarArgs();
 		}
 	}
 }
