@@ -13,9 +13,13 @@ namespace Lamn
 			public List<Object> constants = new List<Object>();
 			public List<VirtualMachine.Function> childFunctions = new List<VirtualMachine.Function>();
 
-			public int stackPosition = 0;
-
+			public int stackPosition = 0;			
 			public Dictionary<String, int> stackVars = new Dictionary<String, int>();
+
+			public int initialClosureStackPosition = 0;
+			public int closureStackPosition = 0;
+			public Dictionary<String, int> closedVars = new Dictionary<String, int>();
+			public Dictionary<String, int> newClosedVars = new Dictionary<String, int>();
 		}
 
 		public class ChunkCompiler : AST.StatementVisitor
@@ -63,9 +67,14 @@ namespace Lamn
 					State.stackPosition++;
 				}
 
+				int initialClosureStackPosition = State.closureStackPosition;
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSEVAR(statement.Variables.Count));
+				State.closureStackPosition += statement.Variables.Count;
+
 				for (int i = 0; i < statement.Variables.Count; i++)
 				{
 					State.stackVars[statement.Variables[i]] = initialStackPosition + i;
+					State.newClosedVars[statement.Variables[i]] = initialClosureStackPosition + i;
 				}
 			}
 
@@ -145,6 +154,11 @@ namespace Lamn
 					expr.Visit(compiler);
 				}
 
+				if (State.newClosedVars.Count > 0)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPCLOSED(State.closureStackPosition - State.initialClosureStackPosition));
+				}
+
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeRET(statement.Expressions.Count));
 
 				hasReturned = true;
@@ -157,7 +171,7 @@ namespace Lamn
 
 			public void Visit(AST.FunctionStatement statement)
 			{
-				FunctionCompiler funcCompiler = new FunctionCompiler(statement.Body);
+				FunctionCompiler funcCompiler = new FunctionCompiler(State, statement.Body);
 
 				VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
 				State.childFunctions.Add(function);
@@ -302,6 +316,11 @@ namespace Lamn
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - State.stackVars[expression.Value]));
 					State.stackPosition++;
 				}
+				else if (State.closedVars.ContainsKey(expression.Value))
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETUPVAL(State.closedVars[expression.Value]));
+					State.stackPosition++;
+				}
 				else
 				{
 					State.constants.Add(expression.Value);
@@ -418,8 +437,16 @@ namespace Lamn
 			public CompilerState State { get; set; }
 			public String Id { get; set; }
 
-			public FunctionCompiler(AST.Body body) {
+			public FunctionCompiler(CompilerState oldState, AST.Body body) {
 				State = new CompilerState();
+
+				State.initialClosureStackPosition = oldState.closureStackPosition;
+				State.closureStackPosition = oldState.closureStackPosition;
+				State.closedVars = oldState.closedVars;
+				foreach (KeyValuePair<String, int> i in oldState.newClosedVars)
+				{
+					State.closedVars[i.Key] = i.Value;
+				}
 
 				State.stackPosition = 1;
 
