@@ -50,6 +50,8 @@ namespace Lamn
 				System.Console.Write("\t");
 			}
 
+			System.Console.Write("\n");
+
 			return new VirtualMachine.VarArgs();
 		}
 	}

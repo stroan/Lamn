@@ -514,6 +514,12 @@ namespace Lamn
 			VarArgs vargs = (VarArgs)PeekStack();
 
 			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+			bool remVarArg = ((instruction & OpCodes.OP2_MASK) >> OpCodes.OP2_SHIFT) != 0;
+
+			if (remVarArg)
+			{
+				PopStack();
+			}
 
 			for (int i = 0; i < numArgs; i++)
 			{

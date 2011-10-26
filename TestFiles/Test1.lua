@@ -3,3 +3,4 @@ function foo(c)
 end
 
 print(foo(foo(4)))
+print(foo(foo(4)), 1)
