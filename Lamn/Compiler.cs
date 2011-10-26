@@ -89,7 +89,16 @@ namespace Lamn
 
 			public void Visit(AST.LocalFunctionStatement statement)
 			{
-				throw new NotImplementedException();
+				FunctionCompiler funcCompiler = new FunctionCompiler(State, statement.Body);
+
+				VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
+				State.childFunctions.Add(function);
+
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id)));
+
+				State.stackVars[statement.Name] = State.stackPosition;
+
+				State.stackPosition++;
 			}
 
 			public void Visit(AST.IfStatement statement)
@@ -186,22 +195,15 @@ namespace Lamn
 				VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
 				State.childFunctions.Add(function);
 
-				AddConstant(function.Id);
-				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(GetConstantIndex(function.Id)));
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id)));
 
-				AddConstant(statement.MainName);
-				State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(GetConstantIndex(statement.MainName)));
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(State.AddConstant(statement.MainName)));
 
 				State.stackPosition--;
 			}
 			#endregion
 
 			#region Helper Members
-			private void AddConstant(Object c)
-			{
-				if (State.constants.Contains(c)) { return; }
-				State.constants.Add(c);
-			}
 
 			private int GetConstantIndex(Object c)
 			{
@@ -231,7 +233,7 @@ namespace Lamn
 				}
 				else if (State.closedVars.ContainsKey(expression.Value))
 				{
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTUPVAL(State.closureStackPosition - State.closedVars[expression.Value]));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTUPVAL(State.initialClosureStackPosition - State.closedVars[expression.Value]));
 				}
 				else
 				{
@@ -331,7 +333,7 @@ namespace Lamn
 				}
 				else if (State.closedVars.ContainsKey(expression.Value))
 				{
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETUPVAL(State.closureStackPosition - State.closedVars[expression.Value]));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETUPVAL(State.initialClosureStackPosition - State.closedVars[expression.Value]));
 					State.stackPosition++;
 				}
 				else
@@ -473,6 +475,9 @@ namespace Lamn
 				{
 					State.stackVars[param] = stackIndex;
 					stackIndex++;
+
+					State.newClosedVars[param] = State.closureStackPosition;
+					State.closureStackPosition++;
 				}
 
 				if (body.ParamList.HasVarArgs)

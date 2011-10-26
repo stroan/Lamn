@@ -55,3 +55,24 @@ print("Should output:\t2\t3\t4")
 print("Actual output:", test3(), test3(), test3())
 
 print("===============================")
+
+-------------------------------------------
+-- Local function test
+
+print("local function test")
+
+local test4a = "dummy"
+
+local function test4(a)
+  local function test4b()
+    return "hello world", a
+  end
+  return test4b
+end
+
+print("Should output:\thello world\t5")
+print("Actual output:", test4(5)())
+
+return test4(5)()
+
+print("===============================")
