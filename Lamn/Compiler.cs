@@ -338,7 +338,9 @@ namespace Lamn
 
 			public void Visit(AST.StringExpression expression)
 			{
-				throw new NotImplementedException();
+				State.constants.Add(expression.Value);
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.constants.IndexOf(expression.Value)));
+				State.stackPosition++;
 			}
 
 			public void Visit(AST.BoolExpression expression)

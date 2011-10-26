@@ -43,6 +43,10 @@ namespace Lamn
 				{
 					System.Console.Write((Double)o);
 				}
+				else if (o is String)
+				{
+					System.Console.Write((String)o);
+				}
 				else
 				{
 					System.Console.Write("[Unknown]");
