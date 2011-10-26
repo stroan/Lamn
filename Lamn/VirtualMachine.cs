@@ -602,11 +602,11 @@ namespace Lamn
 		{
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
-			StackCell s = Stack[stackIndex - index];
+			StackCell s = Stack[stackIndex - (index + 1)];
 
 			Object o = PopStack();
 
-			s.contents = s;
+			s.contents = o;
 
 			CurrentIP.InstructionIndex++;
 		}

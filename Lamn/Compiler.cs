@@ -106,6 +106,8 @@ namespace Lamn
 			public void Visit(AST.FunctionCallStatement statement)
 			{
 				statement.Expr.Visit(new ExpressionCompiler(State, 0));
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPVARGS(0, true));
+				State.stackPosition--;
 			}
 
 			public void Visit(AST.AssignmentStatement statement)
@@ -217,7 +219,7 @@ namespace Lamn
 			{
 				if (State.stackVars.ContainsKey(expression.Value))
 				{
-					throw new NotImplementedException();
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTSTACK(State.stackPosition - State.stackVars[expression.Value]));
 				}
 				else
 				{
