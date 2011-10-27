@@ -21,6 +21,24 @@ namespace Lamn
 			public Dictionary<String, int> closedVars = new Dictionary<String, int>();
 			public Dictionary<String, int> newClosedVars = new Dictionary<String, int>();
 
+			public Dictionary<String, int> labels = new Dictionary<String, int>();
+			public List<KeyValuePair<String, int>> jumps = new List<KeyValuePair<String, int>>();
+
+			public void ResolveJumps()
+			{
+				foreach (KeyValuePair<String, int> jump in jumps)
+				{
+					bytecodes[jump.Value] |= (VirtualMachine.OpCodes.OP1_MASK & ((UInt32)(labels[jump.Key]) << VirtualMachine.OpCodes.OP1_SHIFT));
+				}
+
+				jumps.Clear();
+			}
+
+			public String getNewLabel()
+			{
+				return Guid.NewGuid().ToString();
+			}
+
 			public int AddConstant(Object o)
 			{
 				if (!constants.Contains(o))
@@ -30,6 +48,7 @@ namespace Lamn
 
 				return constants.IndexOf(o);
 			}
+
 		}
 
 		public class ChunkCompiler : AST.StatementVisitor
@@ -38,7 +57,7 @@ namespace Lamn
 
 			public CompilerState State { get; set; }
 
-			public ChunkCompiler(AST.Chunk chunk, CompilerState state)
+			public ChunkCompiler(AST.Chunk chunk, CompilerState state, bool returns)
 			{
 				State = state;
 
@@ -46,7 +65,7 @@ namespace Lamn
 					statement.Visit(this);
 				}
 
-				if (!hasReturned)
+				if (!hasReturned && returns)
 				{
 					state.bytecodes.Add(VirtualMachine.OpCodes.MakeRET(0));
 				}
@@ -103,7 +122,48 @@ namespace Lamn
 
 			public void Visit(AST.IfStatement statement)
 			{
-				throw new NotImplementedException();
+				String afterLabel = State.getNewLabel();
+
+				KeyValuePair<String, AST.TestBlock>[] branchLabels = new KeyValuePair<String, AST.TestBlock>[statement.Conditions.Count];
+				for (int i = 0; i < branchLabels.Length; i++)
+				{
+					branchLabels[i] = new KeyValuePair<string, AST.TestBlock>(State.getNewLabel(), statement.Conditions[i]);
+				}
+
+				for (int i = 0; i < branchLabels.Length; i++)
+				{
+					AST.TestBlock branch = branchLabels[i].Value;
+					String startLabel = branchLabels[i].Key;
+
+					branch.Cond.Visit(new ExpressionCompiler(State, 1));
+					State.bytecodes.Add(VirtualMachine.OpCodes.JMPTRUE);
+					State.jumps.Add(new KeyValuePair<string, int>(startLabel, State.bytecodes.Count - 1));
+					State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
+					State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
+
+					int oldClosureStackPosition = State.closureStackPosition;
+					Dictionary<String, int> oldClosedVars = State.newClosedVars;
+					Dictionary<String, int> oldStackVars = State.stackVars;
+
+					State.labels[startLabel] = State.bytecodes.Count;
+					ChunkCompiler chunk = new ChunkCompiler(branch.Block, State, false);
+
+					if (State.closureStackPosition > oldClosureStackPosition)
+					{
+						State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPCLOSED(State.closureStackPosition - oldClosureStackPosition));
+						State.closedVars = oldClosedVars;
+						State.newClosedVars = oldClosedVars;
+					}
+					State.stackVars = oldStackVars;
+
+					if (i < branchLabels.Length - 1)
+					{
+						State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
+						State.jumps.Add(new KeyValuePair<string, int>(branchLabels[i + 1].Key, State.bytecodes.Count - 1));
+					}
+				}
+
+				State.labels[afterLabel] = State.bytecodes.Count;
 			}
 
 			public void Visit(AST.WhileStatement statement)
@@ -357,7 +417,8 @@ namespace Lamn
 
 			public void Visit(AST.BoolExpression expression)
 			{
-				throw new NotImplementedException();
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(expression.Value)));
+				State.stackPosition++;
 			}
 
 			public void Visit(AST.NilExpression expression)
@@ -485,7 +546,8 @@ namespace Lamn
 					State.stackVars["..."] = 0;
 				}
 
-				new ChunkCompiler(body.Chunk, State);
+				new ChunkCompiler(body.Chunk, State, true);
+				State.ResolveJumps();
 
 				Id = Guid.NewGuid().ToString();
 			}
@@ -493,7 +555,8 @@ namespace Lamn
 
 		public VirtualMachine.Function CompileAST(AST ast)
 		{
-			ChunkCompiler chunkCompiler = new ChunkCompiler(ast.Contents, new CompilerState());
+			ChunkCompiler chunkCompiler = new ChunkCompiler(ast.Contents, new CompilerState(), true);
+			chunkCompiler.State.ResolveJumps();
 			return new VirtualMachine.Function(chunkCompiler.State.bytecodes.ToArray(), chunkCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), chunkCompiler.State.childFunctions);
 		}
 	}

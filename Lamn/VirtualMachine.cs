@@ -19,15 +19,18 @@ namespace Lamn
 
 			public const UInt32 CLOSEVARS = 0x06000000;
 			public const UInt32 POPCLOSED = 0x07000000;
-			public const UInt32 CLOSURE = 0x08000000;
-			public const UInt32 GETUPVAL = 0x09000000;
-			public const UInt32 PUTUPVAL = 0x0A000000;
+			public const UInt32 CLOSURE   = 0x08000000;
+			public const UInt32 GETUPVAL  = 0x09000000;
+			public const UInt32 PUTUPVAL  = 0x0A000000;
 
 			public const UInt32 GETGLOBAL = 0x0B000000;
 			public const UInt32 PUTGLOBAL = 0x0C000000;
 
 			public const UInt32 GETSTACK = 0x0D000000;
 			public const UInt32 PUTSTACK = 0x0E000000;
+
+			public const UInt32 JMP     = 0x0F000000;
+			public const UInt32 JMPTRUE = 0x10000000;
 
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
@@ -110,6 +113,16 @@ namespace Lamn
 			{
 				return PUTSTACK | (((UInt32)index << OP1_SHIFT) & OP1_MASK);
 			}
+
+			public static UInt32 MakeJMP(int offset)
+			{
+				return JMP | (((UInt32)offset << OP1_SHIFT) & OP1_MASK);
+			}
+
+			public static UInt32 MakeJMPTRUE(int offset)
+			{
+				return JMPTRUE | (((UInt32)offset << OP1_SHIFT) & OP1_MASK);
+			}
 		}
 
 		public delegate VarArgs NativeFuncDelegate(VarArgs input);
@@ -187,6 +200,12 @@ namespace Lamn
 							break;
 						case OpCodes.PUTSTACK:
 							name = "PUTSTACK";
+							break;
+						case OpCodes.JMP:
+							name = "JMP";
+							break;
+						case OpCodes.JMPTRUE:
+							name = "JMPTRUE";
 							break;
 						default:
 							throw new VMException();
@@ -377,6 +396,12 @@ namespace Lamn
 						break;
 					case OpCodes.PUTSTACK:
 						DoPUTSTACK(currentInstruction);
+						break;
+					case OpCodes.JMP:
+						DoJMP(currentInstruction);
+						break;
+					case OpCodes.JMPTRUE:
+						DoJMPTRUE(currentInstruction);
 						break;
 					default:
 						throw new VMException();
@@ -644,6 +669,40 @@ namespace Lamn
 
 			CurrentIP.InstructionIndex++;
 		}
+
+		public void DoJMP(UInt32 instruction)
+		{
+			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			CurrentIP.InstructionIndex = index;
+		}
+		public void DoJMPTRUE(UInt32 instruction)
+		{
+			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+
+			Object o = PopStack();
+
+			if (o is bool && (bool)o == true)
+			{
+				CurrentIP.InstructionIndex = index;
+			}
+			else
+			{
+				CurrentIP.InstructionIndex++;
+			}
+		}
 		#endregion
+
+		private int getRealOffset(UInt32 offset)
+		{
+			int realOffset = (int)offset;
+
+			if (offset >> 11 == 1)
+			{
+				realOffset = -(int)(0x00000FFF - offset);
+			}
+
+			return realOffset;
+		}
 	}
 }
