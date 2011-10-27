@@ -496,7 +496,16 @@ namespace Lamn
 
 			public void Visit(AST.UnOpExpression expression)
 			{
-				throw new NotImplementedException();
+				expression.Expr.Visit(this);
+
+				if (expression.Op.Equals("not"))
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.NOT);
+				}
+				else
+				{
+					throw new NotImplementedException();
+				}
 			}
 
 			public void Visit(AST.BinOpExpression expression)
@@ -507,6 +516,10 @@ namespace Lamn
 				if (expression.Op.Equals("+"))
 				{
 					State.bytecodes.Add(VirtualMachine.OpCodes.ADD);
+				}
+				else if (expression.Op.Equals("=="))
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.EQ);
 				}
 				else
 				{

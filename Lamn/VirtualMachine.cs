@@ -34,6 +34,9 @@ namespace Lamn
 
 			public const UInt32 POPSTACK = 0x11000000;
 
+			public const UInt32 EQ  = 0x12000000;
+			public const UInt32 NOT = 0x13000000;
+
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
 			public const UInt32 OP2_MASK    = 0x00000FFF;
@@ -216,6 +219,12 @@ namespace Lamn
 							break;
 						case OpCodes.POPSTACK:
 							name = "POPSTACK";
+							break;
+						case OpCodes.EQ:
+							name = "EQ";
+							break;
+						case OpCodes.NOT:
+							name = "NOT";
 							break;
 						default:
 							throw new VMException();
@@ -415,6 +424,12 @@ namespace Lamn
 						break;
 					case OpCodes.POPSTACK:
 						DoPOPSTACK(currentInstruction);
+						break;
+					case OpCodes.EQ:
+						DoEQ(currentInstruction);
+						break;
+					case OpCodes.NOT:
+						DoNOT(currentInstruction);
 						break;
 					default:
 						throw new VMException();
@@ -712,6 +727,30 @@ namespace Lamn
 			for (int i = 0; i < count; i++)
 			{
 				PopStack();
+			}
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		public void DoEQ(UInt32 instruction)
+		{
+			Object op1 = (Object)PopStack();
+			Object op2 = (Object)PopStack();
+			PushStack(op1.Equals(op2));
+			CurrentIP.InstructionIndex++;
+		}
+
+		public void DoNOT(UInt32 instruction)
+		{
+			Object op1 = PopStack();
+
+			if (op1 is bool)
+			{
+				PushStack(!(bool)op1);
+			}
+			else
+			{
+				PushStack(false);
 			}
 
 			CurrentIP.InstructionIndex++;

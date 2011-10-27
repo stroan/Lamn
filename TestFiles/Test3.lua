@@ -1,6 +1,6 @@
 function test1()
   local a = 1
-  while true do
+  while not (a == 10) do
     print("oops",a)
 	a = a + 1
   end
