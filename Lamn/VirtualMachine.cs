@@ -663,7 +663,7 @@ namespace Lamn
 		{
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
-			StackCell s = Stack[stackIndex - (index + 1)];
+			StackCell s = Stack[stackIndex - index];
 
 			Object o = PopStack();
 

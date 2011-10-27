@@ -189,7 +189,49 @@ namespace Lamn
 
 			public void Visit(AST.WhileStatement statement)
 			{
-				throw new NotImplementedException();
+				String afterLabel = State.getNewLabel();
+				String condLabel = State.getNewLabel();
+				String startLabel = State.getNewLabel();
+
+				State.labels[condLabel] = State.bytecodes.Count;
+				statement.Condition.Visit(new ExpressionCompiler(State, 1));
+
+				State.bytecodes.Add(VirtualMachine.OpCodes.JMPTRUE);
+				State.stackPosition--;
+				State.jumps.Add(new KeyValuePair<string, int>(startLabel, State.bytecodes.Count - 1));
+
+				State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
+				State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
+
+
+				int oldStackPosition = State.stackPosition;
+				int oldClosureStackPosition = State.closureStackPosition;
+				Dictionary<String, int> oldClosedVars = State.newClosedVars.ToDictionary(entry => entry.Key,
+																						 entry => entry.Value); ;
+				Dictionary<String, int> oldStackVars = State.stackVars.ToDictionary(entry => entry.Key,
+																					entry => entry.Value); ;
+
+				State.labels[startLabel] = State.bytecodes.Count;
+				ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, false);
+
+				if (State.closureStackPosition > oldClosureStackPosition)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPCLOSED(State.closureStackPosition - oldClosureStackPosition));
+					State.closedVars = oldClosedVars;
+					State.newClosedVars = oldClosedVars;
+				}
+				State.stackVars = oldStackVars;
+
+				if (State.stackPosition != oldStackPosition)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(State.stackPosition - oldStackPosition));
+					State.stackPosition = oldStackPosition;
+				}
+
+				State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
+				State.jumps.Add(new KeyValuePair<string, int>(condLabel, State.bytecodes.Count - 1));
+
+				State.labels[afterLabel] = State.bytecodes.Count;
 			}
 
 			public void Visit(AST.DoStatement statement)
@@ -279,8 +321,6 @@ namespace Lamn
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id)));
 
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(State.AddConstant(statement.MainName)));
-
-				State.stackPosition--;
 			}
 			#endregion
 
@@ -311,10 +351,12 @@ namespace Lamn
 				if (State.stackVars.ContainsKey(expression.Value))
 				{
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTSTACK(State.stackPosition - State.stackVars[expression.Value]));
+					State.stackPosition--;
 				}
 				else if (State.closedVars.ContainsKey(expression.Value))
 				{
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTUPVAL(State.initialClosureStackPosition - State.closedVars[expression.Value]));
+					State.stackPosition--;
 				}
 				else
 				{

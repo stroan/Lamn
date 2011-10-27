@@ -9,7 +9,7 @@ namespace Lamn
 	{
 		static void Main(string[] args)
 		{
-			String input2 = System.IO.File.ReadAllText("../../../TestFiles/Test2.lua");
+			String input2 = System.IO.File.ReadAllText("../../../TestFiles/Test3.lua");
 
 			Lexer lexer = new Lexer();
 			List<Lexer.Lexeme> output = lexer.lex(input2);
