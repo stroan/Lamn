@@ -24,6 +24,8 @@ namespace Lamn
 			public Dictionary<String, int> labels = new Dictionary<String, int>();
 			public List<KeyValuePair<String, int>> jumps = new List<KeyValuePair<String, int>>();
 
+			public String currentBreakLabel;
+
 			public void ResolveJumps()
 			{
 				foreach (KeyValuePair<String, int> jump in jumps)
@@ -57,17 +59,51 @@ namespace Lamn
 
 			public CompilerState State { get; set; }
 
+			int initialStackPosition;
+			int blockInitialClosureStackPosition;
+
+			Dictionary<String, int> oldClosedVars;
+			Dictionary<String, int> oldStackVars;
+
 			public ChunkCompiler(AST.Chunk chunk, CompilerState state, bool returns)
 			{
 				State = state;
+
+				initialStackPosition = State.stackPosition;
+				blockInitialClosureStackPosition = State.closureStackPosition;
+
+				oldClosedVars = State.newClosedVars.ToDictionary(entry => entry.Key,
+																 entry => entry.Value);
+				oldStackVars = State.stackVars.ToDictionary(entry => entry.Key,
+															entry => entry.Value);
+
 
 				foreach (AST.Statement statement in chunk.Statements) {
 					statement.Visit(this);
 				}
 
+				CleanupChunk();
+
 				if (!hasReturned && returns)
 				{
 					state.bytecodes.Add(VirtualMachine.OpCodes.MakeRET(0));
+				}
+			}
+
+			private void CleanupChunk()
+			{
+				if (State.closureStackPosition > blockInitialClosureStackPosition)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPCLOSED(State.closureStackPosition - blockInitialClosureStackPosition));
+					State.closureStackPosition = blockInitialClosureStackPosition;
+					State.newClosedVars = oldClosedVars;
+				}
+
+				if (State.stackPosition != initialStackPosition)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(State.stackPosition - initialStackPosition));
+					State.stackPosition = initialStackPosition;
+					State.stackVars = oldStackVars;
 				}
 			}
 
@@ -153,29 +189,8 @@ namespace Lamn
 						State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
 					}
 
-					int oldStackPosition = State.stackPosition;
-					int oldClosureStackPosition = State.closureStackPosition;
-					Dictionary<String, int> oldClosedVars = State.newClosedVars.ToDictionary(entry => entry.Key,
-																							 entry => entry.Value); ;
-					Dictionary<String, int> oldStackVars = State.stackVars.ToDictionary(entry => entry.Key,
-																						entry => entry.Value); ;
-
 					State.labels[startLabel] = State.bytecodes.Count;
 					ChunkCompiler chunk = new ChunkCompiler(branch.Block, State, false);
-
-					if (State.closureStackPosition > oldClosureStackPosition)
-					{
-						State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPCLOSED(State.closureStackPosition - oldClosureStackPosition));
-						State.closedVars = oldClosedVars;
-						State.newClosedVars = oldClosedVars;
-					}
-					State.stackVars = oldStackVars;
-
-					if (State.stackPosition != oldStackPosition)
-					{
-						State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(State.stackPosition - oldStackPosition));
-						State.stackPosition = oldStackPosition;
-					}
 
 					if (i < branchLabels.Length - 1)
 					{
@@ -203,30 +218,13 @@ namespace Lamn
 				State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
 				State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
 
-
-				int oldStackPosition = State.stackPosition;
-				int oldClosureStackPosition = State.closureStackPosition;
-				Dictionary<String, int> oldClosedVars = State.newClosedVars.ToDictionary(entry => entry.Key,
-																						 entry => entry.Value); ;
-				Dictionary<String, int> oldStackVars = State.stackVars.ToDictionary(entry => entry.Key,
-																					entry => entry.Value); ;
+				String oldBreakLabel = State.currentBreakLabel;
+				State.currentBreakLabel = afterLabel;
 
 				State.labels[startLabel] = State.bytecodes.Count;
 				ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, false);
 
-				if (State.closureStackPosition > oldClosureStackPosition)
-				{
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPCLOSED(State.closureStackPosition - oldClosureStackPosition));
-					State.closedVars = oldClosedVars;
-					State.newClosedVars = oldClosedVars;
-				}
-				State.stackVars = oldStackVars;
-
-				if (State.stackPosition != oldStackPosition)
-				{
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(State.stackPosition - oldStackPosition));
-					State.stackPosition = oldStackPosition;
-				}
+				State.currentBreakLabel = oldBreakLabel;
 
 				State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
 				State.jumps.Add(new KeyValuePair<string, int>(condLabel, State.bytecodes.Count - 1));
@@ -308,7 +306,10 @@ namespace Lamn
 
 			public void Visit(AST.BreakStatement statement)
 			{
-				throw new NotImplementedException();
+				CleanupChunk();
+
+				State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
+				State.jumps.Add(new KeyValuePair<String, int>(State.currentBreakLabel, State.bytecodes.Count - 1));
 			}
 
 			public void Visit(AST.FunctionStatement statement)
