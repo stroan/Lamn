@@ -15,3 +15,16 @@ function test1()
 end
 
 test1()
+
+function fibs(c)
+  local a, b, i = 1, 1, 0
+  print(a)
+  print(b)
+  while not (i == c) do
+    a, b = b, a + b
+	print(b)
+    i = i + 1
+  end
+end
+
+fibs(20)

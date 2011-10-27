@@ -233,7 +233,7 @@ namespace Lamn
 					UInt32 op1 = (instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT;
 					UInt32 op2 = (instruction & OpCodes.OP2_MASK) >> OpCodes.OP2_SHIFT;
 
-					System.Console.WriteLine(String.Format("0x{0:x4} {1,10} {2:d} {3:d}", new Object[] {i, name, op1, op2}));
+					System.Console.WriteLine(String.Format("0x{0:x4} {1,10} {2:x} {3:x}", new Object[] {i, name, op1, op2}));
 				}
 				System.Console.WriteLine("");
 
