@@ -137,9 +137,19 @@ namespace Lamn
 
 					branch.Cond.Visit(new ExpressionCompiler(State, 1));
 					State.bytecodes.Add(VirtualMachine.OpCodes.JMPTRUE);
+					State.stackPosition--;
+
 					State.jumps.Add(new KeyValuePair<string, int>(startLabel, State.bytecodes.Count - 1));
 					State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
-					State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
+
+					if (i < branchLabels.Length - 1)
+					{
+						State.jumps.Add(new KeyValuePair<string, int>(branchLabels[i + 1].Key, State.bytecodes.Count - 1));
+					}
+					else
+					{
+						State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
+					}
 
 					int oldClosureStackPosition = State.closureStackPosition;
 					Dictionary<String, int> oldClosedVars = State.newClosedVars;
@@ -159,7 +169,7 @@ namespace Lamn
 					if (i < branchLabels.Length - 1)
 					{
 						State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
-						State.jumps.Add(new KeyValuePair<string, int>(branchLabels[i + 1].Key, State.bytecodes.Count - 1));
+						State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
 					}
 				}
 
