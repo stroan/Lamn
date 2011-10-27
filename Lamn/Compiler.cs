@@ -133,15 +133,17 @@ namespace Lamn
 				for (int i = 0; i < branchLabels.Length; i++)
 				{
 					AST.TestBlock branch = branchLabels[i].Value;
-					String startLabel = branchLabels[i].Key;
+					String branchLabel = branchLabels[i].Key;
+					String startLabel = State.getNewLabel();
 
+					State.labels[branchLabel] = State.bytecodes.Count;
 					branch.Cond.Visit(new ExpressionCompiler(State, 1));
+
 					State.bytecodes.Add(VirtualMachine.OpCodes.JMPTRUE);
 					State.stackPosition--;
-
 					State.jumps.Add(new KeyValuePair<string, int>(startLabel, State.bytecodes.Count - 1));
-					State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
 
+					State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
 					if (i < branchLabels.Length - 1)
 					{
 						State.jumps.Add(new KeyValuePair<string, int>(branchLabels[i + 1].Key, State.bytecodes.Count - 1));
@@ -151,9 +153,12 @@ namespace Lamn
 						State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
 					}
 
+					int oldStackPosition = State.stackPosition;
 					int oldClosureStackPosition = State.closureStackPosition;
-					Dictionary<String, int> oldClosedVars = State.newClosedVars;
-					Dictionary<String, int> oldStackVars = State.stackVars;
+					Dictionary<String, int> oldClosedVars = State.newClosedVars.ToDictionary(entry => entry.Key,
+																							 entry => entry.Value); ;
+					Dictionary<String, int> oldStackVars = State.stackVars.ToDictionary(entry => entry.Key,
+																						entry => entry.Value); ;
 
 					State.labels[startLabel] = State.bytecodes.Count;
 					ChunkCompiler chunk = new ChunkCompiler(branch.Block, State, false);
@@ -165,6 +170,12 @@ namespace Lamn
 						State.newClosedVars = oldClosedVars;
 					}
 					State.stackVars = oldStackVars;
+
+					if (State.stackPosition != oldStackPosition)
+					{
+						State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(State.stackPosition - oldStackPosition));
+						State.stackPosition = oldStackPosition;
+					}
 
 					if (i < branchLabels.Length - 1)
 					{

@@ -32,6 +32,8 @@ namespace Lamn
 			public const UInt32 JMP     = 0x0F000000;
 			public const UInt32 JMPTRUE = 0x10000000;
 
+			public const UInt32 POPSTACK = 0x11000000;
+
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
 			public const UInt32 OP2_MASK    = 0x00000FFF;
@@ -123,6 +125,11 @@ namespace Lamn
 			{
 				return JMPTRUE | (((UInt32)offset << OP1_SHIFT) & OP1_MASK);
 			}
+
+			public static UInt32 MakePOPSTACK(int count)
+			{
+				return POPSTACK | (((UInt32)count << OP1_SHIFT) & OP1_MASK);
+			}
 		}
 
 		public delegate VarArgs NativeFuncDelegate(VarArgs input);
@@ -206,6 +213,9 @@ namespace Lamn
 							break;
 						case OpCodes.JMPTRUE:
 							name = "JMPTRUE";
+							break;
+						case OpCodes.POPSTACK:
+							name = "POPSTACK";
 							break;
 						default:
 							throw new VMException();
@@ -402,6 +412,9 @@ namespace Lamn
 						break;
 					case OpCodes.JMPTRUE:
 						DoJMPTRUE(currentInstruction);
+						break;
+					case OpCodes.POPSTACK:
+						DoPOPSTACK(currentInstruction);
 						break;
 					default:
 						throw new VMException();
@@ -691,18 +704,18 @@ namespace Lamn
 				CurrentIP.InstructionIndex++;
 			}
 		}
-		#endregion
 
-		private int getRealOffset(UInt32 offset)
+		public void DoPOPSTACK(UInt32 instruction)
 		{
-			int realOffset = (int)offset;
+			int count = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
-			if (offset >> 11 == 1)
+			for (int i = 0; i < count; i++)
 			{
-				realOffset = -(int)(0x00000FFF - offset);
+				PopStack();
 			}
 
-			return realOffset;
+			CurrentIP.InstructionIndex++;
 		}
+		#endregion
 	}
 }
