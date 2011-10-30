@@ -279,7 +279,24 @@ namespace Lamn
 
 			public void Visit(AST.RepeatStatement statement)
 			{
-				throw new NotImplementedException();
+				String afterLabel = State.getNewLabel();
+				String startLabel = State.getNewLabel();
+
+				String oldBreakLabel = State.currentBreakLabel;
+				State.currentBreakLabel = afterLabel;
+
+				State.labels[startLabel] = State.bytecodes.Count;
+				ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, false);
+
+				State.currentBreakLabel = oldBreakLabel;
+
+				statement.Condition.Visit(new ExpressionCompiler(State, 1));
+
+				State.bytecodes.Add(VirtualMachine.OpCodes.JMPTRUE);
+				State.stackPosition--;
+				State.jumps.Add(new KeyValuePair<string, int>(startLabel, State.bytecodes.Count - 1));
+
+				State.labels[afterLabel] = State.bytecodes.Count;
 			}
 
 			public void Visit(AST.ReturnStatement statement)

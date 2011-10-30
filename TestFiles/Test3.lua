@@ -32,3 +32,9 @@ fibs(20)
 do
   print "hello world"
 end
+
+ri = 1
+repeat
+  print "hello world"
+  ri = ri + 1
+until ri == 3
