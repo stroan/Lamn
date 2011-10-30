@@ -234,11 +234,12 @@ namespace Lamn
 
 			public void Visit(AST.DoStatement statement)
 			{
-				throw new NotImplementedException();
+				new ChunkCompiler(statement.Block, State, false);
 			}
 
 			public void Visit(AST.ForStatement statement)
 			{
+				
 				throw new NotImplementedException();
 			}
 

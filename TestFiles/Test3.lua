@@ -28,3 +28,7 @@ function fibs(c)
 end
 
 fibs(20)
+
+do
+  print "hello world"
+end
