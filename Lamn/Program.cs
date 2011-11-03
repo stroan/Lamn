@@ -9,7 +9,7 @@ namespace Lamn
 	{
 		static void Main(string[] args)
 		{
-			String input2 = System.IO.File.ReadAllText("../../../TestFiles/Test3.lua");
+			String input2 = System.IO.File.ReadAllText("../../../TestFiles/Test4.lua");
 
 			Lexer lexer = new Lexer();
 			List<Lexer.Lexeme> output = lexer.lex(input2);
@@ -19,6 +19,7 @@ namespace Lamn
 
 			VirtualMachine vm = new VirtualMachine();
 			vm.PutGlobal("print", new VirtualMachine.NativeFuncDelegate(printFunc));
+			vm.PutGlobal("tonumber", new VirtualMachine.NativeFuncDelegate(tonumber));
 
 			Compiler compiler = new Compiler();
 			VirtualMachine.Function compiledFunctions = compiler.CompileAST(outpu2);
@@ -57,6 +58,11 @@ namespace Lamn
 			System.Console.Write("\n");
 
 			return new VirtualMachine.VarArgs();
+		}
+
+		static VirtualMachine.VarArgs tonumber(VirtualMachine.VarArgs input)
+		{
+			return input;
 		}
 	}
 }

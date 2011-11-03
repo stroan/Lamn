@@ -37,6 +37,12 @@ namespace Lamn
 			public const UInt32 EQ  = 0x12000000;
 			public const UInt32 NOT = 0x13000000;
 
+			public const UInt32 AND = 0x14000000;
+			public const UInt32 OR = 0x15000000;
+
+			public const UInt32 LESSEQ = 0x16000000;
+			public const UInt32 LESS = 0x17000000;
+
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
 			public const UInt32 OP2_MASK    = 0x00000FFF;
@@ -225,6 +231,18 @@ namespace Lamn
 							break;
 						case OpCodes.NOT:
 							name = "NOT";
+							break;
+						case OpCodes.AND:
+							name = "AND";
+							break;
+						case OpCodes.OR:
+							name = "OR";
+							break;
+						case OpCodes.LESSEQ:
+							name = "LESSEQ";
+							break;
+						case OpCodes.LESS:
+							name = "LESS";
 							break;
 						default:
 							throw new VMException();
@@ -430,6 +448,18 @@ namespace Lamn
 						break;
 					case OpCodes.NOT:
 						DoNOT(currentInstruction);
+						break;
+					case OpCodes.AND:
+						DoAND(currentInstruction);
+						break;
+					case OpCodes.OR:
+						DoOR(currentInstruction);
+						break;
+					case OpCodes.LESSEQ:
+						DoLESSEQ(currentInstruction);
+						break;
+					case OpCodes.LESS:
+						DoLESS(currentInstruction);
 						break;
 					default:
 						throw new VMException();
@@ -710,7 +740,7 @@ namespace Lamn
 
 			Object o = PopStack();
 
-			if (o is bool && (bool)o == true)
+			if (isValueTrue(o))
 			{
 				CurrentIP.InstructionIndex = index;
 			}
@@ -755,6 +785,64 @@ namespace Lamn
 
 			CurrentIP.InstructionIndex++;
 		}
+
+		private void DoAND(UInt32 instruction)
+		{
+			Object op1 = PopStack();
+			Object op2 = PopStack();
+			if (isValueTrue(op1) && isValueTrue(op2))
+			{
+				PushStack(op1);
+			}
+			else
+			{
+				PushStack(false);
+			}
+			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoOR(UInt32 instruction)
+		{
+			Object op1 = PopStack();
+			Object op2 = PopStack();
+			if (isValueTrue(op1) || isValueTrue(op2))
+			{
+				PushStack(op2);
+			}
+			else
+			{
+				PushStack(false);
+			}
+			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoLESSEQ(UInt32 instruction)
+		{
+			Double op1 = (Double)PopStack();
+			Double op2 = (Double)PopStack();
+			PushStack(op2 <= op1);
+			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoLESS(UInt32 instruction)
+		{
+			Double op1 = (Double)PopStack();
+			Double op2 = (Double)PopStack();
+			PushStack(op2 < op1);
+			CurrentIP.InstructionIndex++;
+		}
 		#endregion
+
+		private bool isValueTrue(Object o)
+		{
+			if (o is bool)
+			{
+				return (bool)o;
+			}
+			else
+			{
+				return true;
+			}
+		}
 	}
 }
