@@ -774,14 +774,7 @@ namespace Lamn
 		{
 			Object op1 = PopStack();
 
-			if (op1 is bool)
-			{
-				PushStack(!(bool)op1);
-			}
-			else
-			{
-				PushStack(false);
-			}
+			PushStack(!isValueTrue(op1));
 
 			CurrentIP.InstructionIndex++;
 		}
@@ -835,7 +828,11 @@ namespace Lamn
 
 		private bool isValueTrue(Object o)
 		{
-			if (o is bool)
+			if (o == null)
+			{
+				return false;
+			}
+			else if (o is bool)
 			{
 				return (bool)o;
 			}

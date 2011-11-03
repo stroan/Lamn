@@ -71,18 +71,31 @@ namespace Lamn
 			}
 
 			public void RestoreState(SavedState s) {
+				Cleanup(s);
+
 				if (closureStackPosition > s.blockInitialClosureStackPosition)
 				{
-					bytecodes.Add(VirtualMachine.OpCodes.MakePOPCLOSED(closureStackPosition - s.blockInitialClosureStackPosition));
 					closureStackPosition = s.blockInitialClosureStackPosition;
 					newClosedVars = s.oldClosedVars;
 				}
 
 				if (stackPosition != s.initialStackPosition)
 				{
-					bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(stackPosition - s.initialStackPosition));
 					stackPosition = s.initialStackPosition;
 					stackVars = s.oldStackVars;
+				}
+			}
+
+			public void Cleanup(SavedState s)
+			{
+				if (closureStackPosition > s.blockInitialClosureStackPosition)
+				{
+					bytecodes.Add(VirtualMachine.OpCodes.MakePOPCLOSED(closureStackPosition - s.blockInitialClosureStackPosition));
+				}
+
+				if (stackPosition != s.initialStackPosition)
+				{
+					bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(stackPosition - s.initialStackPosition));
 				}
 			}
 		}
@@ -104,11 +117,16 @@ namespace Lamn
 
 			SavedState savedState;
 
-			public ChunkCompiler(AST.Chunk chunk, CompilerState state, bool returns)
+			public ChunkCompiler(AST.Chunk chunk, CompilerState state, SavedState save, bool returns)
 			{
 				State = state;
 
-				savedState = State.SaveState();
+				savedState = save;
+				if (save == null)
+				{
+					savedState = State.SaveState();
+				}
+
 
 				foreach (AST.Statement statement in chunk.Statements) {
 					statement.Visit(this);
@@ -134,22 +152,7 @@ namespace Lamn
 				int numVars = statement.Variables.Count;
 
 				int initialStackPosition = State.stackPosition;
-				for (int i = 0; i < statement.Expressions.Count; i++)
-				{
-					int numResults = 1;
-					if (i == statement.Expressions.Count - 1)
-					{
-						numResults = numVars - i;
-					}
-					statement.Expressions[i].Visit(new ExpressionCompiler(State, numResults));
-				}
-
-				int nowStackPosition = State.stackPosition;
-				for (int i = 0; i < numVars - (nowStackPosition - initialStackPosition); i++)
-				{
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(null)));
-					State.stackPosition++;
-				}
+				CompileExpressionList(statement.Expressions, numVars);
 
 				int initialClosureStackPosition = State.closureStackPosition;
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSEVAR(statement.Variables.Count));
@@ -210,7 +213,7 @@ namespace Lamn
 					}
 
 					State.labels[startLabel] = State.bytecodes.Count;
-					ChunkCompiler chunk = new ChunkCompiler(branch.Block, State, false);
+					ChunkCompiler chunk = new ChunkCompiler(branch.Block, State, null, false);
 
 					if (i < branchLabels.Length - 1)
 					{
@@ -242,7 +245,7 @@ namespace Lamn
 				State.currentBreakLabel = afterLabel;
 
 				State.labels[startLabel] = State.bytecodes.Count;
-				ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, false);
+				ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, null, false);
 
 				State.currentBreakLabel = oldBreakLabel;
 
@@ -254,7 +257,7 @@ namespace Lamn
 
 			public void Visit(AST.DoStatement statement)
 			{
-				new ChunkCompiler(statement.Block, State, false);
+				new ChunkCompiler(statement.Block, State, null, false);
 			}
 
 			public void Visit(AST.ForStatement statement)
@@ -346,7 +349,7 @@ namespace Lamn
 					State.currentBreakLabel = afterLabel;
 
 					State.labels.Add(bodyLabel, State.bytecodes.Count);
-					ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, false);
+					ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, null, false);
 
 					State.currentBreakLabel = oldBreakLabel;
 
@@ -359,13 +362,67 @@ namespace Lamn
 					State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
 					State.jumps.Add(new KeyValuePair<string, int>(forCondLabel, State.bytecodes.Count - 1));
 
-					State.RestoreState(save);
-
 					State.labels.Add(afterLabel, State.bytecodes.Count);
+
+					State.RestoreState(save);
 				}
 				else
 				{
-					throw new NotImplementedException();
+					AST.ListForClause clause = (AST.ListForClause)statement.Clause;
+
+					SavedState forSave = State.SaveState();
+
+					int fPosition = State.stackPosition;
+					int sPosition = State.stackPosition + 1;
+					int vPosition = State.stackPosition + 2;
+					CompileExpressionList(clause.Expressions, 3);
+
+					String afterLabel = State.getNewLabel();
+					String startLabel = State.getNewLabel();
+					String bodyLabel = State.getNewLabel();
+					State.labels.Add(startLabel, State.bytecodes.Count);
+
+					SavedState loopSave = State.SaveState();
+
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - fPosition)); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - sPosition)); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - vPosition)); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeCALL(2)); State.stackPosition -= 2;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPVARGS(clause.Names.Count, true)); State.stackPosition--;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSEVAR(clause.Names.Count));
+					foreach (String name in clause.Names)
+					{
+						State.stackVars[name] = State.stackPosition;
+						State.stackPosition++;
+
+						State.newClosedVars[name] = State.closureStackPosition;
+						State.closureStackPosition++;
+					}
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(clause.Names.Count)); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTSTACK(State.stackPosition - vPosition)); State.stackPosition--;
+
+
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - vPosition)); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.JMPTRUE); State.stackPosition--;
+					State.jumps.Add(new KeyValuePair<string, int>(bodyLabel, State.bytecodes.Count - 1));
+					State.Cleanup(loopSave);
+					State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
+					State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
+
+					State.labels[bodyLabel] = State.bytecodes.Count;
+					String oldBreakLabel = State.currentBreakLabel;
+					State.currentBreakLabel = afterLabel;
+					ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, loopSave, false);
+
+					State.currentBreakLabel = oldBreakLabel;
+
+					State.RestoreState(loopSave);
+
+					State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
+					State.jumps.Add(new KeyValuePair<string, int>(startLabel, State.bytecodes.Count - 1));
+
+					State.labels.Add(afterLabel, State.bytecodes.Count);
+					State.RestoreState(forSave);
 				}
 			}
 
@@ -412,7 +469,7 @@ namespace Lamn
 				State.currentBreakLabel = afterLabel;
 
 				State.labels[startLabel] = State.bytecodes.Count;
-				ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, false);
+				ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, null, false);
 
 				State.currentBreakLabel = oldBreakLabel;
 
@@ -474,6 +531,26 @@ namespace Lamn
 			private int GetConstantIndex(Object c)
 			{
 				return State.constants.IndexOf(c);
+			}
+
+			private void CompileExpressionList(List<AST.Expression> expressions, int numVars) {
+				int initialStackPosition = State.stackPosition;
+				for (int i = 0; i < expressions.Count; i++)
+				{
+					int numResults = 1;
+					if (i == expressions.Count - 1)
+					{
+						numResults = numVars - i;
+					}
+					expressions[i].Visit(new ExpressionCompiler(State, numResults));
+				}
+
+				int nowStackPosition = State.stackPosition;
+				for (int i = 0; i < numVars - (nowStackPosition - initialStackPosition); i++)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(null)));
+					State.stackPosition++;
+				}
 			}
 			#endregion
 		}
@@ -631,7 +708,8 @@ namespace Lamn
 
 			public void Visit(AST.NilExpression expression)
 			{
-				throw new NotImplementedException();
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(null)));
+				State.stackPosition++;
 			}
 
 			public void Visit(AST.VarArgsExpression expression)
@@ -767,7 +845,7 @@ namespace Lamn
 					State.stackVars["..."] = 0;
 				}
 
-				new ChunkCompiler(body.Chunk, State, true);
+				new ChunkCompiler(body.Chunk, State, null, true);
 				State.ResolveJumps();
 
 				Id = Guid.NewGuid().ToString();
@@ -776,7 +854,7 @@ namespace Lamn
 
 		public VirtualMachine.Function CompileAST(AST ast)
 		{
-			ChunkCompiler chunkCompiler = new ChunkCompiler(ast.Contents, new CompilerState(), true);
+			ChunkCompiler chunkCompiler = new ChunkCompiler(ast.Contents, new CompilerState(), null, true);
 			chunkCompiler.State.ResolveJumps();
 			return new VirtualMachine.Function(chunkCompiler.State.bytecodes.ToArray(), chunkCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), chunkCompiler.State.childFunctions);
 		}

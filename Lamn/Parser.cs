@@ -340,7 +340,7 @@ namespace Lamn
 					Stream.MoveNext();
 				}
 
-				Stream.GetKeywordAndMove("=");
+				Stream.GetKeywordAndMove("in");
 
 				List<AST.Expression> expressions = ParseExpressionList1();
 
