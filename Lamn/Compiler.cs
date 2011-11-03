@@ -280,7 +280,7 @@ namespace Lamn
 
 					// Initialize the variables for the loop.
 					int valPosition = State.stackPosition;
-					new AST.LocalAssignmentStatement(new List<string>(new String[] {clause.Name}), new List<AST.Expression>(new AST.Expression[]{exp1})).Visit(this);
+					exp1.Visit(new ExpressionCompiler(State, 1));
 
 					int stepPosition = State.stackPosition;
 					exp2.Visit(new ExpressionCompiler(State, 1));
@@ -345,13 +345,23 @@ namespace Lamn
 
 					// Body
 
+					SavedState loopSave = State.SaveState();
+
 					String oldBreakLabel = State.currentBreakLabel;
 					State.currentBreakLabel = afterLabel;
 
 					State.labels.Add(bodyLabel, State.bytecodes.Count);
-					ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, null, false);
+
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - valPosition)); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSEVAR(1));
+					State.newClosedVars[clause.Name] = State.closureStackPosition; State.closureStackPosition++;
+					State.stackVars[clause.Name] = State.stackPosition - 1;
+
+					ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, loopSave, false);
 
 					State.currentBreakLabel = oldBreakLabel;
+
+					State.RestoreState(loopSave);
 
 					// Increment value
 
