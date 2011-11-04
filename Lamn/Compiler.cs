@@ -764,7 +764,14 @@ namespace Lamn
 
 			public void Visit(AST.FunctionExpression expression)
 			{
-				throw new NotImplementedException();
+				FunctionCompiler funcCompiler = new FunctionCompiler(State, expression.Body);
+
+				VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
+				State.childFunctions.Add(function);
+
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id)));
+
+				State.stackPosition++;
 			}
 
 			public void Visit(AST.LookupExpression expression)
