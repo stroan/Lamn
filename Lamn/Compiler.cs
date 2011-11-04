@@ -109,6 +109,18 @@ namespace Lamn
 			public Dictionary<String, int> oldStackVars;
 		}
 
+		public class Table
+		{
+			public Object[] arrayPart;
+			public Dictionary<String, Object> hashPart;
+
+			public Table()
+			{
+				arrayPart = new Object[0];
+				hashPart = new Dictionary<string, object>();
+			}
+		}
+
 		public class ChunkCompiler : AST.StatementVisitor
 		{
 			private bool hasReturned = false;
@@ -724,7 +736,8 @@ namespace Lamn
 
 			public void Visit(AST.VarArgsExpression expression)
 			{
-				throw new NotImplementedException();
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - State.stackVars["..."]));
+				State.stackPosition++;
 			}
 
 			public void Visit(AST.UnOpExpression expression)
