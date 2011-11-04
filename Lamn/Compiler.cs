@@ -743,16 +743,47 @@ namespace Lamn
 
 			public void Visit(AST.BinOpExpression expression)
 			{
-				expression.LeftExpr.Visit(this);
-				expression.RightExpr.Visit(this);
-
 				if (expression.Op.Equals("+"))
 				{
+					expression.LeftExpr.Visit(this);
+					expression.RightExpr.Visit(this);
 					State.bytecodes.Add(VirtualMachine.OpCodes.ADD);
 				}
 				else if (expression.Op.Equals("=="))
 				{
+					expression.LeftExpr.Visit(this);
+					expression.RightExpr.Visit(this);
 					State.bytecodes.Add(VirtualMachine.OpCodes.EQ);
+				}
+				else if (expression.Op.Equals("or"))
+				{
+					String afterLabel = State.getNewLabel();
+					expression.LeftExpr.Visit(this);
+
+					State.jumps.Add(new KeyValuePair<string,int>(afterLabel, State.bytecodes.Count));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeJMPTRUEPreserve());
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(1)); State.stackPosition--;
+
+					expression.RightExpr.Visit(this);
+					State.labels.Add(afterLabel, State.bytecodes.Count);
+				}
+				else if (expression.Op.Equals("and"))
+				{
+					String afterLabel = State.getNewLabel();
+					String nextLabel = State.getNewLabel();
+
+					expression.LeftExpr.Visit(this);
+
+					State.jumps.Add(new KeyValuePair<string,int>(nextLabel, State.bytecodes.Count));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeJMPTRUEPreserve());
+					State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count));
+					State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
+
+					State.labels.Add(nextLabel, State.bytecodes.Count);
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(1)); State.stackPosition--;
+					expression.RightExpr.Visit(this);
+
+					State.labels.Add(afterLabel, State.bytecodes.Count);
 				}
 				else
 				{

@@ -135,6 +135,11 @@ namespace Lamn
 				return JMPTRUE | (((UInt32)offset << OP1_SHIFT) & OP1_MASK);
 			}
 
+			public static UInt32 MakeJMPTRUEPreserve()
+			{
+				return JMPTRUE | (((UInt32)1 << OP2_SHIFT) & OP2_MASK);
+			}
+
 			public static UInt32 MakePOPSTACK(int count)
 			{
 				return POPSTACK | (((UInt32)count << OP1_SHIFT) & OP1_MASK);
@@ -737,8 +742,17 @@ namespace Lamn
 		public void DoJMPTRUE(UInt32 instruction)
 		{
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+			bool preserve = (int)((instruction & OpCodes.OP2_MASK) >> OpCodes.OP2_SHIFT) == 1;
 
-			Object o = PopStack();
+			Object o;
+			if (preserve)
+			{
+				o = PeekStack();
+			}
+			else
+			{
+				o = PopStack();
+			}
 
 			if (isValueTrue(o))
 			{

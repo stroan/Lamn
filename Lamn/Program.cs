@@ -40,13 +40,21 @@ namespace Lamn
 		{
 			foreach (Object o in input.Args)
 			{
-				if (o is Double)
+				if (o == null)
+				{
+					System.Console.Write("nil");
+				}
+				else if (o is Double)
 				{
 					System.Console.Write((Double)o);
 				}
 				else if (o is String)
 				{
 					System.Console.Write((String)o);
+				}
+				else if (o is Boolean)
+				{
+					System.Console.Write((Boolean)o);
 				}
 				else
 				{
