@@ -109,18 +109,6 @@ namespace Lamn
 			public Dictionary<String, int> oldStackVars;
 		}
 
-		public class Table
-		{
-			public Object[] arrayPart;
-			public Dictionary<String, Object> hashPart;
-
-			public Table()
-			{
-				arrayPart = new Object[0];
-				hashPart = new Dictionary<string, object>();
-			}
-		}
-
 		public class ChunkCompiler : AST.StatementVisitor
 		{
 			private bool hasReturned = false;
@@ -860,7 +848,41 @@ namespace Lamn
 
 			public void Visit(AST.Constructor expression)
 			{
-				throw new NotImplementedException();
+				int tablePosition = State.stackPosition;
+				State.bytecodes.Add(VirtualMachine.OpCodes.NEWTABLE); State.stackPosition++;
+
+				double listIndex = 1;
+
+				foreach (AST.ConField field in expression.Fields)
+				{
+					if (field is AST.NameRecField)
+					{
+						AST.NameRecField nField = (AST.NameRecField)field;
+
+						State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - tablePosition)); State.stackPosition++;
+						State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(nField.Name))); State.stackPosition++;
+						nField.Value.Visit(this); // Stack position ++;
+						State.bytecodes.Add(VirtualMachine.OpCodes.PUTTABLE); State.stackPosition -= 3;
+					}
+					else if (field is AST.ListField)
+					{
+						AST.ListField lField = (AST.ListField)field;
+
+						State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - tablePosition)); State.stackPosition++;
+						State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(listIndex++))); State.stackPosition++;
+						lField.Expr.Visit(this); // Stack position ++;
+						State.bytecodes.Add(VirtualMachine.OpCodes.PUTTABLE); State.stackPosition -= 3;
+					}
+					else if (field is AST.ExprRecField)
+					{
+						AST.ExprRecField eField = (AST.ExprRecField)field;
+
+						State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - tablePosition)); State.stackPosition++;
+						eField.IndexExpr.Visit(this); // Stack position ++;
+						eField.Value.Visit(this); // Stack position ++;
+						State.bytecodes.Add(VirtualMachine.OpCodes.PUTTABLE); State.stackPosition -= 3;
+					}
+				}
 			}
 
 			#endregion

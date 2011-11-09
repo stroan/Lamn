@@ -9,7 +9,7 @@ namespace Lamn
 	{
 		static void Main(string[] args)
 		{
-			String input2 = System.IO.File.ReadAllText("../../../TestFiles/Test5.lua");
+			String input2 = System.IO.File.ReadAllText("../../../TestFiles/Test6.lua");
 
 			Lexer lexer = new Lexer();
 			List<Lexer.Lexeme> output = lexer.lex(input2);
@@ -55,6 +55,10 @@ namespace Lamn
 				else if (o is Boolean)
 				{
 					System.Console.Write((Boolean)o);
+				}
+				else if (o is VirtualMachine.Table)
+				{
+					System.Console.Write(((VirtualMachine.Table)o).ToString());
 				}
 				else
 				{

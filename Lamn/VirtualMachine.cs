@@ -43,6 +43,9 @@ namespace Lamn
 			public const UInt32 LESSEQ = 0x16000000;
 			public const UInt32 LESS = 0x17000000;
 
+			public const UInt32 NEWTABLE = 0x18000000;
+			public const UInt32 PUTTABLE = 0x19000000;
+
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
 			public const UInt32 OP2_MASK    = 0x00000FFF;
@@ -249,6 +252,12 @@ namespace Lamn
 						case OpCodes.LESS:
 							name = "LESS";
 							break;
+						case OpCodes.NEWTABLE:
+							name = "NEWTABLE";
+							break;
+						case OpCodes.PUTTABLE:
+							name = "PUTTABLE";
+							break;
 						default:
 							throw new VMException();
 					}
@@ -353,6 +362,41 @@ namespace Lamn
 				CurrentFunction = currentFunction;
 				ClosedVars = closedVars;
 				InstructionIndex = instructionIndex;
+			}
+		}
+
+		public class ReturnPoint
+		{
+			public InstructionPointer instructionPointer;
+			public int popArgs;
+
+			public ReturnPoint(InstructionPointer ip, int a)
+			{
+				instructionPointer = ip;
+				popArgs = a;
+			}
+		}
+
+		public class Table
+		{
+			Dictionary<Object, Object> hashPart = new Dictionary<Object, Object>();
+
+			public void RawPut(Object key, Object o)
+			{
+				hashPart[key] = o;
+			}
+
+			override public String ToString()
+			{
+				String retVal = "{";
+
+				foreach (KeyValuePair<Object, Object> hashEntry in hashPart)
+				{
+					retVal += hashEntry.Key.ToString() + ":" + hashEntry.Value.ToString() + ",";
+				}
+
+				retVal += "}";
+				return retVal; 
 			}
 		}
 
@@ -466,6 +510,12 @@ namespace Lamn
 					case OpCodes.LESS:
 						DoLESS(currentInstruction);
 						break;
+					case OpCodes.NEWTABLE:
+						DoNEWTABLE(currentInstruction);
+						break;
+					case OpCodes.PUTTABLE:
+						DoPUTTABLE(currentInstruction);
+						break;
 					default:
 						throw new VMException();
 				}
@@ -554,18 +604,30 @@ namespace Lamn
 
 			baseIndex = oldBaseIndex;
 
-			CurrentIP = (InstructionPointer)PopStack();
+			ReturnPoint retPoint = (ReturnPoint)PopStack();
+			CurrentIP = retPoint.instructionPointer;
 			if (CurrentIP != null)
 			{
 				CurrentIP.InstructionIndex++;
 			}
 
-			PushStack(args);
+			if (retPoint.popArgs > 0)
+			{
+				for (int i = 0; i < retPoint.popArgs; i++)
+				{
+					PushStack(args.PopArg());
+				}
+			}
+			else
+			{
+				PushStack(args);
+			}
 		}
 
 		private void DoCALL(UInt32 instruction)
 		{
 			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
+			int numPop = (int)((instruction & OpCodes.OP2_MASK) >> OpCodes.OP2_SHIFT);
 
 			VarArgs args = new VarArgs();
 			for (int i = 0; i < numArgs; i++)
@@ -588,7 +650,9 @@ namespace Lamn
 				InstructionPointer newIP = null;
 				newIP = new InstructionPointer(f, closure.ClosedVars, 0);
 
-				PushStack(CurrentIP);
+				ReturnPoint retPoint = new ReturnPoint(CurrentIP, numPop);
+
+				PushStack(retPoint);
 				PushStack(baseIndex);
 				baseIndex = stackIndex - 1;
 				PushStack(args);
@@ -836,6 +900,43 @@ namespace Lamn
 			Double op1 = (Double)PopStack();
 			Double op2 = (Double)PopStack();
 			PushStack(op2 < op1);
+			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoNEWTABLE(UInt32 instruction)
+		{
+			PushStack(new Table());
+			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoPUTTABLE(UInt32 instruction)
+		{
+			Object value = PopStack();
+			Object key = PopStack();
+			Table table = (Table)PopStack();
+
+			if (key is String)
+			{
+				table.RawPut((String)key, value);
+			}
+			else if (key is Double && value is VarArgs)
+			{
+				VarArgs vargs = (VarArgs)value;
+				Double index = (Double)key;
+				foreach (Object o in vargs.Args)
+				{
+					table.RawPut(index++, o);
+				}
+			}
+			else if (key is Double)
+			{
+				table.RawPut((Double)key, value);
+			}
+			else
+			{
+				throw new NotImplementedException();
+			}
+
 			CurrentIP.InstructionIndex++;
 		}
 		#endregion
