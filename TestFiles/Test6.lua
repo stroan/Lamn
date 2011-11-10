@@ -10,3 +10,12 @@ foo(1,2,3)
 
 local a = {}
 print(a)
+
+a[1] = 42
+print(a)
+
+a.b = 43
+print(a)
+
+print(a.b)
+print(a["b"])

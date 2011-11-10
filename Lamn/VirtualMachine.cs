@@ -45,6 +45,7 @@ namespace Lamn
 
 			public const UInt32 NEWTABLE = 0x18000000;
 			public const UInt32 PUTTABLE = 0x19000000;
+			public const UInt32 GETTABLE = 0x1A000000;
 
 			public const UInt32 OPCODE_MASK = 0xFF000000;
 			public const UInt32 OP1_MASK    = 0x00FFF000;
@@ -258,6 +259,9 @@ namespace Lamn
 						case OpCodes.PUTTABLE:
 							name = "PUTTABLE";
 							break;
+						case OpCodes.GETTABLE:
+							name = "GETTABLE";
+							break;
 						default:
 							throw new VMException();
 					}
@@ -384,6 +388,15 @@ namespace Lamn
 			public void RawPut(Object key, Object o)
 			{
 				hashPart[key] = o;
+			}
+
+			public Object RawGet(Object key)
+			{
+				if (hashPart.ContainsKey(key))
+				{
+					return hashPart[key];
+				}
+				return null;
 			}
 
 			override public String ToString()
@@ -515,6 +528,9 @@ namespace Lamn
 						break;
 					case OpCodes.PUTTABLE:
 						DoPUTTABLE(currentInstruction);
+						break;
+					case OpCodes.GETTABLE:
+						DoGETTABLE(currentInstruction);
 						break;
 					default:
 						throw new VMException();
@@ -936,6 +952,18 @@ namespace Lamn
 			{
 				throw new NotImplementedException();
 			}
+
+			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoGETTABLE(UInt32 instruction)
+		{
+			Object key = PopStack();
+			Table table = (Table)PopStack();
+
+			Object value = table.RawGet(key);
+
+			PushStack(value);
 
 			CurrentIP.InstructionIndex++;
 		}
