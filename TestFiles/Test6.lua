@@ -1,4 +1,4 @@
-print {az = 1}
+--[[print {az = 1}
 print {az = 2 + 3, b = (function () return 1,2,3 end)}
 print {1,2,3,["sdf"] = 3}
 
@@ -18,12 +18,12 @@ a.b = 43
 print(a)
 
 print(a.b)
-print(a["b"])
+print(a["b"])]]
 
-Vector = {a= 2}
-function Vector:foo()
-  print("hello", self.a)
+Vector = {a= 2, b = {}}
+function Vector.b:foo()
+  print("hello", self)
   return 1
 end
 
-Vector:foo()
+Vector.b:foo()

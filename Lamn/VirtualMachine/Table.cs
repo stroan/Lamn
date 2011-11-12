@@ -1,0 +1,40 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Lamn.VirtualMachine
+{
+	class Table
+	{
+		Dictionary<Object, Object> hashPart = new Dictionary<Object, Object>();
+		public Table MetaTable { private set; get; }
+
+		public void RawPut(Object key, Object o)
+		{
+			hashPart[key] = o;
+		}
+
+		public Object RawGet(Object key)
+		{
+			if (hashPart.ContainsKey(key))
+			{
+				return hashPart[key];
+			}
+			return null;
+		}
+
+		override public String ToString()
+		{
+			String retVal = "{";
+
+			foreach (KeyValuePair<Object, Object> hashEntry in hashPart)
+			{
+				retVal += hashEntry.Key.ToString() + ":" + hashEntry.Value.ToString() + ",";
+			}
+
+			retVal += "}";
+			return retVal;
+		}
+	}
+}

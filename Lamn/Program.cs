@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+using Lamn.Compiler;
+using Lamn.VirtualMachine;
+
 namespace Lamn
 {
 	class Program
@@ -17,11 +20,11 @@ namespace Lamn
 			Parser parser = new Parser(output);
 			AST outpu2 = parser.Parse();
 
-			VirtualMachine vm = new VirtualMachine();
-			vm.PutGlobal("print", new VirtualMachine.NativeFuncDelegate(printFunc));
-			vm.PutGlobal("tonumber", new VirtualMachine.NativeFuncDelegate(tonumber));
+			State vm = new State();
+			vm.PutGlobal("print", new State.NativeFuncDelegate(printFunc));
+			vm.PutGlobal("tonumber", new State.NativeFuncDelegate(tonumber));
 
-			Compiler compiler = new Compiler();
+			Compiler.Compiler compiler = new Compiler.Compiler();
 			VirtualMachine.Function compiledFunctions = compiler.CompileAST(outpu2);
 
 			compiledFunctions.Print();

@@ -43,14 +43,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AST.cs" />
-    <Compile Include="Compiler.cs" />
-    <Compile Include="Lexer.cs" />
-    <Compile Include="Parser.cs" />
+    <Compile Include="Compiler\AST.cs" />
+    <Compile Include="Compiler\Compiler.cs" />
+    <Compile Include="Compiler\CompilerState.cs" />
+    <Compile Include="Compiler\Lexer.cs" />
+    <Compile Include="Compiler\Parser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="VirtualMachine.cs" />
+    <Compile Include="VirtualMachine\Closure.cs" />
+    <Compile Include="VirtualMachine\Function.cs" />
+    <Compile Include="VirtualMachine\InstructionPointer.cs" />
+    <Compile Include="VirtualMachine\OpCodes.cs" />
+    <Compile Include="VirtualMachine\ReturnPoint.cs" />
+    <Compile Include="VirtualMachine\StackCell.cs" />
+    <Compile Include="VirtualMachine\Table.cs" />
+    <Compile Include="VirtualMachine\VarArgs.cs" />
+    <Compile Include="VirtualMachine\State.cs" />
+    <Compile Include="VirtualMachine\VMException.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
