@@ -51,6 +51,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VirtualMachine\Closure.cs" />
+    <Compile Include="VirtualMachine\CoreFunctions.cs" />
     <Compile Include="VirtualMachine\Function.cs" />
     <Compile Include="VirtualMachine\InstructionPointer.cs" />
     <Compile Include="VirtualMachine\OpCodes.cs" />

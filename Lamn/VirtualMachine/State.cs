@@ -550,7 +550,18 @@ namespace Lamn.VirtualMachine
 			Object key = PopStack();
 			Table table = (Table)PopStack();
 
-			Object value = table.RawGet(key);
+			Object value = null;
+			Table metatable = null;
+			do
+			{
+				value = table.RawGet(key);
+				metatable = table.MetaTable;
+
+				if (value == null)
+				{
+					table = metatable;
+				}
+			} while (value == null && metatable != null);
 
 			PushStack(value);
 

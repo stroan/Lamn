@@ -12,7 +12,7 @@ namespace Lamn
 	{
 		static void Main(string[] args)
 		{
-			String input2 = System.IO.File.ReadAllText("../../../TestFiles/Test6.lua");
+			String input2 = System.IO.File.ReadAllText("../../../TestFiles/Test7.lua");
 
 			Lexer lexer = new Lexer();
 			List<Lexer.Lexeme> output = lexer.lex(input2);
@@ -21,6 +21,7 @@ namespace Lamn
 			AST outpu2 = parser.Parse();
 
 			State vm = new State();
+			CoreFunctions.RegisterCoreFunctions(vm);
 			vm.PutGlobal("print", new State.NativeFuncDelegate(printFunc));
 			vm.PutGlobal("tonumber", new State.NativeFuncDelegate(tonumber));
 

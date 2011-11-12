@@ -8,7 +8,7 @@ namespace Lamn.VirtualMachine
 	class Table
 	{
 		Dictionary<Object, Object> hashPart = new Dictionary<Object, Object>();
-		public Table MetaTable { private set; get; }
+		public Table MetaTable { set; get; }
 
 		public void RawPut(Object key, Object o)
 		{
@@ -31,6 +31,11 @@ namespace Lamn.VirtualMachine
 			foreach (KeyValuePair<Object, Object> hashEntry in hashPart)
 			{
 				retVal += hashEntry.Key.ToString() + ":" + hashEntry.Value.ToString() + ",";
+			}
+
+			if (MetaTable != null)
+			{
+				retVal += " | " + MetaTable.ToString();
 			}
 
 			retVal += "}";
