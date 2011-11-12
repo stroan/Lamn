@@ -167,7 +167,7 @@ namespace Lamn
 
 			public void Visit(AST.LocalFunctionStatement statement)
 			{
-				FunctionCompiler funcCompiler = new FunctionCompiler(State, statement.Body);
+				FunctionCompiler funcCompiler = new FunctionCompiler(State, statement.Body, false);
 
 				VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
 				State.childFunctions.Add(function);
@@ -540,14 +540,54 @@ namespace Lamn
 
 			public void Visit(AST.FunctionStatement statement)
 			{
-				FunctionCompiler funcCompiler = new FunctionCompiler(State, statement.Body);
+				bool isSelfFunction = statement.SelfName != null;
+				bool isGlobal = !isSelfFunction && statement.FieldNames.Count == 0;
+
+				if (!isGlobal)
+				{
+					// Get the table
+					AST.Expression expr = new AST.NameExpression(statement.MainName);
+
+					if (statement.FieldNames.Count > 0) {
+						foreach (String field in statement.FieldNames.GetRange(0, statement.FieldNames.Count - 1))
+						{
+							expr = new AST.LookupExpression(expr, field);
+						}
+
+						if (isSelfFunction)
+						{
+							expr = new AST.LookupExpression(expr, statement.FieldNames.Last());
+						}
+					}
+
+					expr.Visit(new ExpressionCompiler(State, 1));
+
+					// Get the key
+					if (isSelfFunction)
+					{
+						State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(statement.SelfName))); State.stackPosition++;
+					}
+					else 
+					{
+						State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(statement.FieldNames.Last()))); State.stackPosition++;
+					}
+				}
+
+				FunctionCompiler funcCompiler = new FunctionCompiler(State, statement.Body, isSelfFunction);
 
 				VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
 				State.childFunctions.Add(function);
 
-				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id)));
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id))); State.stackPosition++;
 
-				State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(State.AddConstant(statement.MainName)));
+				if (!isGlobal)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.PUTTABLE); State.stackPosition -= 3;
+				}
+				else
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(State.AddConstant(statement.MainName))); State.stackPosition--;
+				}
 			}
 			#endregion
 
@@ -641,6 +681,11 @@ namespace Lamn
 			public void Visit(AST.LookupExpression expression)
 			{
 				expression.Obj.Visit(new ExpressionCompiler(State, 1));
+			}
+
+			public void Visit(AST.SelfLookupExpression expression)
+			{
+				throw new NotImplementedException();
 			}
 
 			public void Visit(AST.IndexExpression expression)
@@ -745,6 +790,11 @@ namespace Lamn
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(expression.Name))); State.stackPosition++;
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - rightPosition)); State.stackPosition++;
 				State.bytecodes.Add(VirtualMachine.OpCodes.PUTTABLE); State.stackPosition -= 3;
+			}
+
+			public void Visit(AST.SelfLookupExpression expression)
+			{
+				throw new NotImplementedException();
 			}
 
 			public void Visit(AST.IndexExpression expression)
@@ -904,7 +954,7 @@ namespace Lamn
 
 			public void Visit(AST.FunctionExpression expression)
 			{
-				FunctionCompiler funcCompiler = new FunctionCompiler(State, expression.Body);
+				FunctionCompiler funcCompiler = new FunctionCompiler(State, expression.Body, false);
 
 				VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
 				State.childFunctions.Add(function);
@@ -921,6 +971,11 @@ namespace Lamn
 				State.bytecodes.Add(VirtualMachine.OpCodes.GETTABLE); State.stackPosition--;
 			}
 
+			public void Visit(AST.SelfLookupExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
 			public void Visit(AST.IndexExpression expression)
 			{
 				expression.Obj.Visit(new ExpressionCompiler(State, 1));
@@ -931,7 +986,26 @@ namespace Lamn
 			public void Visit(AST.FunctionApplicationExpression expression)
 			{
 				int funcIndex = State.stackPosition;
-				expression.Obj.Visit(new ExpressionCompiler(State, 1));
+
+				if (expression.Obj is AST.SelfLookupExpression)
+				{
+					AST.SelfLookupExpression lookup = (AST.SelfLookupExpression)expression.Obj;
+					int selfPos = State.stackPosition;
+					lookup.Obj.Visit(new ExpressionCompiler(State, 1));
+					int funcPos = State.stackPosition;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - selfPos)); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(lookup.Name))); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.GETTABLE); State.stackPosition--;
+
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - selfPos)); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - funcPos)); State.stackPosition++;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTSTACK(State.stackPosition - selfPos)); State.stackPosition--;
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTSTACK(State.stackPosition - funcPos)); State.stackPosition--;
+				}
+				else
+				{
+					expression.Obj.Visit(new ExpressionCompiler(State, 1));
+				}
 
 				foreach (AST.Expression expr in expression.Args)
 				{
@@ -946,7 +1020,13 @@ namespace Lamn
 
 				int currentIndex = State.stackPosition;
 
-				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCALL(expression.Args.Count));
+				int argCount = expression.Args.Count;
+				if (expression.Obj is AST.SelfLookupExpression)
+				{
+					argCount++;
+				}
+
+				State.bytecodes.Add(VirtualMachine.OpCodes.MakeCALL(argCount));
 
 				if (NumResults > 0)
 				{
@@ -1005,7 +1085,7 @@ namespace Lamn
 			public CompilerState State { get; set; }
 			public String Id { get; set; }
 
-			public FunctionCompiler(CompilerState oldState, AST.Body body) {
+			public FunctionCompiler(CompilerState oldState, AST.Body body, bool selfFunction) {
 				State = new CompilerState();
 
 				State.initialClosureStackPosition = oldState.closureStackPosition;
@@ -1018,15 +1098,24 @@ namespace Lamn
 
 				State.stackPosition = 1;
 
-				if (body.ParamList.NamedParams.Count > 0)
+				List<String> paramList = body.ParamList.NamedParams;
+				if (selfFunction)
 				{
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPVARGS(body.ParamList.NamedParams.Count));
-					State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSEVAR(body.ParamList.NamedParams.Count));
-					State.stackPosition += body.ParamList.NamedParams.Count;
+					List<String> pList = new List<String>();
+					pList.Add("self");
+					pList.AddRange(paramList);
+					paramList = pList;
+				}
+
+				if (paramList.Count > 0)
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPVARGS(paramList.Count));
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSEVAR(paramList.Count));
+					State.stackPosition += paramList.Count;
 				}
 
 				int stackIndex = 1;
-				foreach (String param in body.ParamList.NamedParams)
+				foreach (String param in paramList)
 				{
 					State.stackVars[param] = stackIndex;
 					stackIndex++;

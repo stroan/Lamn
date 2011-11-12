@@ -736,7 +736,7 @@ namespace Lamn
 					String functionName = Stream.GetName().Value;
 					Stream.MoveNext();
 
-					primaryExp = new AST.LookupExpression(primaryExp, functionName);
+					primaryExp = new AST.SelfLookupExpression(primaryExp, functionName);
 
 					List<AST.Expression> args = ParseFuncArgs();
 

@@ -35,6 +35,7 @@ namespace Lamn
 			void Visit(BinOpExpression expression);
 			void Visit(FunctionExpression expression);
 			void Visit(LookupExpression expression);
+			void Visit(SelfLookupExpression expression);
 			void Visit(IndexExpression expression);
 			void Visit(FunctionApplicationExpression expression);
 			void Visit(Constructor expression);
@@ -267,7 +268,7 @@ namespace Lamn
 			public FunctionStatement(String mainName, List<String> fieldNames, String selfName, Body body)
 			{
 				MainName = mainName;
-				FieldNames = FieldNames;
+				FieldNames = fieldNames;
 				SelfName = selfName;
 				Body = body;
 			}
@@ -451,6 +452,23 @@ namespace Lamn
 			public String Name { get; private set; }
 
 			public LookupExpression(Expression obj, String name)
+			{
+				Obj = obj;
+				Name = name;
+			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
+		}
+
+		public class SelfLookupExpression : Expression
+		{
+			public Expression Obj { get; private set; }
+			public String Name { get; private set; }
+
+			public SelfLookupExpression(Expression obj, String name)
 			{
 				Obj = obj;
 				Name = name;
