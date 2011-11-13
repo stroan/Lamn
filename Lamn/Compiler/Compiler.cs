@@ -803,26 +803,26 @@ namespace Lamn.Compiler
 			{
 				if (expression.Op.Equals("+"))
 				{
-					expression.LeftExpr.Visit(this);
-					expression.RightExpr.Visit(this);
+					expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+					expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
 					State.bytecodes.Add(VirtualMachine.OpCodes.ADD);
 				}
 				else if (expression.Op.Equals("=="))
 				{
-					expression.LeftExpr.Visit(this);
-					expression.RightExpr.Visit(this);
+					expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+					expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
 					State.bytecodes.Add(VirtualMachine.OpCodes.EQ);
 				}
 				else if (expression.Op.Equals("or"))
 				{
 					String afterLabel = State.getNewLabel();
-					expression.LeftExpr.Visit(this);
+					expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
 
 					State.jumps.Add(new KeyValuePair<string,int>(afterLabel, State.bytecodes.Count));
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakeJMPTRUEPreserve());
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(1)); State.stackPosition--;
 
-					expression.RightExpr.Visit(this);
+					expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
 					State.labels.Add(afterLabel, State.bytecodes.Count);
 				}
 				else if (expression.Op.Equals("and"))
@@ -830,7 +830,7 @@ namespace Lamn.Compiler
 					String afterLabel = State.getNewLabel();
 					String nextLabel = State.getNewLabel();
 
-					expression.LeftExpr.Visit(this);
+					expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
 
 					State.jumps.Add(new KeyValuePair<string,int>(nextLabel, State.bytecodes.Count));
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakeJMPTRUEPreserve());
@@ -839,7 +839,7 @@ namespace Lamn.Compiler
 
 					State.labels.Add(nextLabel, State.bytecodes.Count);
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(1)); State.stackPosition--;
-					expression.RightExpr.Visit(this);
+					expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
 
 					State.labels.Add(afterLabel, State.bytecodes.Count);
 				}
