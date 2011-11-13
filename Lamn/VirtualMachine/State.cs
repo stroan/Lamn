@@ -144,20 +144,33 @@ namespace Lamn.VirtualMachine
 			GlobalTable[name] = func;
 		}
 
+		#region Thread management functions
 		public void ResumeThread(Thread t, VarArgs args)
 		{
-			t.State.PushStack(args);
-
-			ThreadStack.Push(t.State);
+			if (t.State.StackPosition == 0) // Thread has terminated
+			{
+				VarArgs retArgs = new VarArgs();
+				retArgs.PushArg(false);
+				CurrentThread.PushStack(retArgs);
+			}
+			else // Resume thread
+			{
+				t.State.PushStack(args);
+				ThreadStack.Push(t.State);
+			}
 			CurrentIP.InstructionIndex++;
 		}
 
 		public void YieldThread(VarArgs args)
 		{
 			ThreadStack.Pop();
+
+			args.PushArg(true);
 			CurrentThread.PushStack(args);
+
 			CurrentIP.InstructionIndex++;
 		}
+		#endregion
 
 		#region Execute instructions
 		private void DoLOADK(UInt32 instruction)
