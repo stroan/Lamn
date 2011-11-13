@@ -178,10 +178,27 @@ namespace Lamn.VirtualMachine
 
 		private void DoADD(UInt32 instruction)
 		{
-			Double op1 = (Double)PopStack();
-			Double op2 = (Double)PopStack();
-			PushStack(op1 + op2);
-			CurrentIP.InstructionIndex++;
+			Object op1 = PopStack();
+			Object op2 = PopStack();
+
+			if (op1 is Double && op2 is Double)
+			{
+				PushStack((Double)op1 + (Double)op2);
+				CurrentIP.InstructionIndex++;
+			}
+			else
+			{
+				Object o = GetBinHandler("__add", op1, op2);
+				if (o == null)
+				{
+					throw new VMException();
+				}
+
+				PushStack(o);
+				PushStack(op1);
+				PushStack(op2);
+				DoCALL(OpCodes.MakeCALL(2, 1));
+			}
 		}
 
 		private void DoRET(UInt32 instruction)
@@ -423,7 +440,7 @@ namespace Lamn.VirtualMachine
 				o = PopStack();
 			}
 
-			if (isValueTrue(o))
+			if (IsValueTrue(o))
 			{
 				CurrentIP.InstructionIndex = index;
 			}
@@ -457,7 +474,7 @@ namespace Lamn.VirtualMachine
 		{
 			Object op1 = PopStack();
 
-			PushStack(!isValueTrue(op1));
+			PushStack(!IsValueTrue(op1));
 
 			CurrentIP.InstructionIndex++;
 		}
@@ -466,7 +483,7 @@ namespace Lamn.VirtualMachine
 		{
 			Object op1 = PopStack();
 			Object op2 = PopStack();
-			if (isValueTrue(op1) && isValueTrue(op2))
+			if (IsValueTrue(op1) && IsValueTrue(op2))
 			{
 				PushStack(op1);
 			}
@@ -481,7 +498,7 @@ namespace Lamn.VirtualMachine
 		{
 			Object op1 = PopStack();
 			Object op2 = PopStack();
-			if (isValueTrue(op1) || isValueTrue(op2))
+			if (IsValueTrue(op1) || IsValueTrue(op2))
 			{
 				PushStack(op2);
 			}
@@ -549,19 +566,7 @@ namespace Lamn.VirtualMachine
 		{
 			Object key = PopStack();
 			Table table = (Table)PopStack();
-
-			Object value = null;
-			Table metatable = null;
-			do
-			{
-				value = table.RawGet(key);
-				metatable = table.MetaTable;
-
-				if (value == null)
-				{
-					table = metatable;
-				}
-			} while (value == null && metatable != null);
+			Object value = table.MetaGet(key);
 
 			PushStack(value);
 
@@ -569,7 +574,7 @@ namespace Lamn.VirtualMachine
 		}
 		#endregion
 
-		private bool isValueTrue(Object o)
+		private bool IsValueTrue(Object o)
 		{
 			if (o == null)
 			{
@@ -583,6 +588,21 @@ namespace Lamn.VirtualMachine
 			{
 				return true;
 			}
+		}
+
+		private Object GetBinHandler(String key, Object op1, Object op2)
+		{
+			if (op1 is Table && ((Table)op1).MetaTable != null && ((Table)op1).MetaTable.MetaGet(key) != null)
+			{
+				return ((Table)op1).MetaTable.MetaGet(key);
+			}
+
+			if (op2 is Table && ((Table)op2).MetaTable != null && ((Table)op2).MetaTable.MetaGet(key) != null)
+			{
+				return ((Table)op2).MetaTable.MetaGet(key);
+			}
+
+			return null;
 		}
 	}
 }

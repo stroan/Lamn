@@ -24,6 +24,19 @@ namespace Lamn.VirtualMachine
 			return null;
 		}
 
+		public Object MetaGet(Object key)
+		{
+			if (hashPart.ContainsKey(key))
+			{
+				return hashPart[key];
+			}
+			else if (MetaTable != null)
+			{
+				return MetaTable.MetaGet(key);
+			}
+			return null;
+		}
+
 		override public String ToString()
 		{
 			String retVal = "{";

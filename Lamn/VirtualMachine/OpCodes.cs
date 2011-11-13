@@ -62,6 +62,11 @@ namespace Lamn.VirtualMachine
 			return CALL | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK);
 		}
 
+		public static UInt32 MakeCALL(int numArgs, int numToPop)
+		{
+			return CALL | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK) | (((UInt32)numToPop << OP2_SHIFT) & OP2_MASK);
+		}
+
 		public static UInt32 MakePOPVARGS(int numArgs)
 		{
 			return POPVARGS | (((UInt32)numArgs << OP1_SHIFT) & OP1_MASK);
