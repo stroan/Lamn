@@ -13,8 +13,11 @@ namespace Lamn.VirtualMachine
 			s.PutGlobal("setmetatable", new State.NativeFuncDelegate(SetMetaTable));
 			s.PutGlobal("tonumber", new State.NativeFuncDelegate(ToNumber));
 			s.PutGlobal("print", new State.NativeFuncDelegate(Print));
+
+			s.PutGlobal("coroutine", GetCoroutineTable());
 		}
 
+		#region Basic core functions
 		public static VarArgs GetMetaTable(VarArgs args)
 		{
 			Object o = args.PopArg();
@@ -52,7 +55,7 @@ namespace Lamn.VirtualMachine
 				returnArgs.PushArg(arg);
 			}
 
-			return args;
+			return returnArgs;
 		}
 
 		static VarArgs Print(VarArgs input)
@@ -90,5 +93,41 @@ namespace Lamn.VirtualMachine
 
 			return new VarArgs();
 		}
+		#endregion
+
+		#region coroutine functions
+		private static Table GetCoroutineTable()
+		{
+			Table coroutineTable = new Table();
+			coroutineTable.RawPut("create", new State.NativeFuncDelegate(CoroutineCreate));
+			coroutineTable.RawPut("resume", new State.NativeCoreFuncDelegate(CoroutineResume));
+			coroutineTable.RawPut("yield", new State.NativeCoreFuncDelegate(CoroutineYield));
+
+			return coroutineTable;
+		}
+
+		private static VarArgs CoroutineCreate(VarArgs args)
+		{
+			Thread t = new Thread((Closure)args.PopArg());
+			t.State.PushStack(new YieldPoint());
+			t.State.PushStack(0);
+			t.State.BasePosition = 1;
+
+			VarArgs returnArgs = new VarArgs();
+			returnArgs.PushArg(t);
+			return returnArgs;
+		}
+
+		private static void CoroutineResume(VarArgs args, State s)
+		{
+			Thread t = (Thread)args.PopArg();
+			s.ResumeThread(t, args);
+		}
+
+		private static void CoroutineYield(VarArgs args, State s)
+		{
+			s.YieldThread(args);
+		}
+		#endregion
 	}
 }

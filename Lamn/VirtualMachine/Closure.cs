@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.VirtualMachine
 {
-	class Closure
+	public class Closure
 	{
 		public Function Func { get; private set; }
 		public StackCell[] ClosedVars { get; private set; }

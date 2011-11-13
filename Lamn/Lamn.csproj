@@ -61,9 +61,12 @@
     <Compile Include="VirtualMachine\ReturnPoint.cs" />
     <Compile Include="VirtualMachine\StackCell.cs" />
     <Compile Include="VirtualMachine\Table.cs" />
+    <Compile Include="VirtualMachine\Thread.cs" />
+    <Compile Include="VirtualMachine\ThreadState.cs" />
     <Compile Include="VirtualMachine\VarArgs.cs" />
     <Compile Include="VirtualMachine\State.cs" />
     <Compile Include="VirtualMachine\VMException.cs" />
+    <Compile Include="VirtualMachine\YieldPoint.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

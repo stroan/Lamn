@@ -37,11 +37,11 @@ namespace Lamn
 			compiledFunctions.Print();
 
 			VirtualMachine.Closure closure = new VirtualMachine.Closure(compiledFunctions, new VirtualMachine.StackCell[0]);
-			LamnState.PushStack(closure);
+			LamnState.CurrentThread.PushStack(closure);
 			LamnState.Call();
 			LamnState.Run();
 
-			VirtualMachine.VarArgs returnValue = (VirtualMachine.VarArgs)LamnState.PopStack();
+			VirtualMachine.VarArgs returnValue = (VirtualMachine.VarArgs)LamnState.CurrentThread.PopStack();
 		}
 	}
 }

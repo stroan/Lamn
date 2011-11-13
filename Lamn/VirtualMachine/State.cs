@@ -1,33 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Lamn.VirtualMachine
 {
 	public class State
 	{
 		public delegate VarArgs NativeFuncDelegate(VarArgs input);
+		public delegate void NativeCoreFuncDelegate(VarArgs intpu, State state);
 
 		private Dictionary<String, Function> FunctionMap { get; set; }
 
-		private StackCell[] Stack { get; set; }
-		private InstructionPointer CurrentIP { get; set; }
-		private LinkedList<StackCell> ClosureStack { get; set; }
+		public ThreadState CurrentThread { get { return ThreadStack.Peek(); } }
+		public InstructionPointer CurrentIP { 
+			get { 
+				return CurrentThread.CurrentInstruction; 
+			} 
+			set { 
+				CurrentThread.CurrentInstruction = value; 
+			} 
+		}
+
+		public Stack<ThreadState> ThreadStack { get; private set; }
 
 		private Dictionary<Object, Object> GlobalTable { get; set; }
 
 		private const int stackSize = 512;
 
-		private int baseIndex = 0;
-		private int stackIndex = 0;
+		//private int baseIndex = 0;
 
 		public State()
 		{
 			FunctionMap = new Dictionary<String, Function>();
-			Stack = new StackCell[stackSize];
-			ClosureStack = new LinkedList<StackCell>();
 			GlobalTable = new Dictionary<Object, Object>();
+			ThreadStack = new Stack<ThreadState>();
+			ThreadStack.Push(new ThreadState(stackSize));
 		}
 
 		public void RegisterFunction(Function f)
@@ -132,58 +139,42 @@ namespace Lamn.VirtualMachine
 			DoCALL(0);
 		}
 
-		public void PutGlobal(String name, NativeFuncDelegate func) 
+		public void PutGlobal(String name, Object func) 
 		{
 			GlobalTable[name] = func;
 		}
 
-		#region Manipulate Stacks
-		public void PushStack(Object o) {
-			Stack[stackIndex] = new StackCell() { contents = o };
-			stackIndex++;
+		public void ResumeThread(Thread t, VarArgs args)
+		{
+			t.State.PushStack(args);
+
+			ThreadStack.Push(t.State);
+			CurrentIP.InstructionIndex++;
 		}
 
-		public void PushStackUnboxed(StackCell s)
+		public void YieldThread(VarArgs args)
 		{
-			Stack[stackIndex] = s;
-			stackIndex++;
+			ThreadStack.Pop();
+			CurrentThread.PushStack(args);
+			CurrentIP.InstructionIndex++;
 		}
-
-		public Object PopStack()
-		{
-			stackIndex--;
-			Object retValue = Stack[stackIndex].contents;
-			Stack[stackIndex] = null;
-			return retValue;
-		}
-
-		public Object PeekStack()
-		{
-			return Stack[stackIndex - 1].contents;
-		}
-
-		public Object GetStackAtIndex(int index)
-		{
-			return Stack[index].contents;
-		}
-		#endregion
 
 		#region Execute instructions
 		private void DoLOADK(UInt32 instruction)
 		{
 			UInt32 constantIndex = (instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT;
-			PushStack(CurrentIP.CurrentFunction.Constants[constantIndex]);
+			CurrentThread.PushStack(CurrentIP.CurrentFunction.Constants[constantIndex]);
 			CurrentIP.InstructionIndex++;
 		}
 
 		private void DoADD(UInt32 instruction)
 		{
-			Object op1 = PopStack();
-			Object op2 = PopStack();
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
 
 			if (op1 is Double && op2 is Double)
 			{
-				PushStack((Double)op1 + (Double)op2);
+				CurrentThread.PushStack((Double)op1 + (Double)op2);
 				CurrentIP.InstructionIndex++;
 			}
 			else
@@ -194,16 +185,16 @@ namespace Lamn.VirtualMachine
 					throw new VMException();
 				}
 
-				PushStack(o);
-				PushStack(op1);
-				PushStack(op2);
+				CurrentThread.PushStack(o);
+				CurrentThread.PushStack(op1);
+				CurrentThread.PushStack(op2);
 				DoCALL(OpCodes.MakeCALL(2, 1));
 			}
 		}
 
 		private void DoRET(UInt32 instruction)
 		{
-			int oldBaseIndex = (int)GetStackAtIndex(baseIndex);
+			int oldBaseIndex = (int)CurrentThread.GetStackAtIndex(CurrentThread.BasePosition);
 
 			VarArgs args = new VarArgs();
 			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
@@ -211,38 +202,51 @@ namespace Lamn.VirtualMachine
 			{
 				if (i == 0)
 				{
-					args.PushLastArg(PopStack());
+					args.PushLastArg(CurrentThread.PopStack());
 				}
 				else
 				{
-					args.PushArg(PopStack());
+					args.PushArg(CurrentThread.PopStack());
 				}
 			}
 
-			while (stackIndex > baseIndex)
+			while (CurrentThread.StackPosition > CurrentThread.BasePosition)
 			{
-				PopStack();
+				CurrentThread.PopStack();
 			}
 
-			baseIndex = oldBaseIndex;
+			CurrentThread.BasePosition = oldBaseIndex;
 
-			ReturnPoint retPoint = (ReturnPoint)PopStack();
-			CurrentIP = retPoint.instructionPointer;
-			if (CurrentIP != null)
-			{
-				CurrentIP.InstructionIndex++;
-			}
+			Object retObj = CurrentThread.PopStack();
 
-			if (retPoint.popArgs > 0)
+			if (retObj is ReturnPoint) // Returning inside a thread
 			{
-				for (int i = 0; i < retPoint.popArgs; i++)
+				ReturnPoint retPoint = (ReturnPoint)retObj;
+				CurrentIP = retPoint.instructionPointer;
+				if (CurrentIP != null)
 				{
-					PushStack(args.PopArg());
+					CurrentIP.InstructionIndex++;
 				}
+
+				if (retPoint.popArgs > 0)
+				{
+					for (int i = 0; i < retPoint.popArgs; i++)
+					{
+						CurrentThread.PushStack(args.PopArg());
+					}
+				}
+				else
+				{
+					CurrentThread.PushStack(args);
+				}
+			}
+			else if (retObj is YieldPoint) // Returning across a thread boundary
+			{
+				YieldThread(args);
 			}
 			else
 			{
-				PushStack(args);
+				throw new VMException();
 			}
 		}
 
@@ -255,14 +259,14 @@ namespace Lamn.VirtualMachine
 			for (int i = 0; i < numArgs; i++)
 			{
 				if (i == 0) {
-					args.PushLastArg(PopStack());
+					args.PushLastArg(CurrentThread.PopStack());
 				}
 				else {
-					args.PushArg(PopStack());
+					args.PushArg(CurrentThread.PopStack());
 				}
 			}
 
-			Object o = PopStack();
+			Object o = CurrentThread.PopStack();
 			
 			if (o is Closure)
 			{
@@ -274,10 +278,10 @@ namespace Lamn.VirtualMachine
 
 				ReturnPoint retPoint = new ReturnPoint(CurrentIP, numPop);
 
-				PushStack(retPoint);
-				PushStack(baseIndex);
-				baseIndex = stackIndex - 1;
-				PushStack(args);
+				CurrentThread.PushStack(retPoint);
+				CurrentThread.PushStack(CurrentThread.BasePosition);
+				CurrentThread.BasePosition = CurrentThread.StackPosition - 1;
+				CurrentThread.PushStack(args);
 
 				CurrentIP = newIP;
 			}
@@ -285,9 +289,14 @@ namespace Lamn.VirtualMachine
 			{
 				NativeFuncDelegate nativeFunc = (NativeFuncDelegate)o;
 				VarArgs returnArgs = nativeFunc(args);
-				PushStack(returnArgs);
+				CurrentThread.PushStack(returnArgs);
 
 				CurrentIP.InstructionIndex++;
+			}
+			else if (o is NativeCoreFuncDelegate)
+			{
+				NativeCoreFuncDelegate nativeFunc = (NativeCoreFuncDelegate)o;
+				nativeFunc(args, this);
 			}
 			else
 			{
@@ -297,19 +306,19 @@ namespace Lamn.VirtualMachine
 
 		private void DoPOPVARGS(UInt32 instruction)
 		{
-			VarArgs vargs = (VarArgs)PeekStack();
+			VarArgs vargs = (VarArgs)CurrentThread.PeekStack();
 
 			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 			bool remVarArg = ((instruction & OpCodes.OP2_MASK) >> OpCodes.OP2_SHIFT) != 0;
 
 			if (remVarArg)
 			{
-				PopStack();
+				CurrentThread.PopStack();
 			}
 
 			for (int i = 0; i < numArgs; i++)
 			{
-				PushStack(vargs.PopArg());
+				CurrentThread.PushStack(vargs.PopArg());
 			}
 
 			CurrentIP.InstructionIndex++;
@@ -321,7 +330,7 @@ namespace Lamn.VirtualMachine
 
 			for (int i = 0; i < numVars; i++)
 			{
-				ClosureStack.AddFirst(Stack[(stackIndex - 1) - i]);
+				CurrentThread.ClosureStack.AddFirst(CurrentThread.GetUnboxedAtIndex((CurrentThread.StackPosition - 1) - i));
 			}
 				
 			CurrentIP.InstructionIndex++;
@@ -333,7 +342,7 @@ namespace Lamn.VirtualMachine
 
 			for (int i = 0; i < numVars; i++)
 			{
-				ClosureStack.RemoveFirst();
+				CurrentThread.ClosureStack.RemoveFirst();
 			}
 
 			CurrentIP.InstructionIndex++;
@@ -344,9 +353,9 @@ namespace Lamn.VirtualMachine
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
 			String functionId = (String)CurrentIP.CurrentFunction.Constants[index];
-			StackCell[] closure = ClosureStack.ToArray();
+			StackCell[] closure = CurrentThread.ClosureStack.ToArray();
 
-			PushStack(new Closure(CurrentIP.CurrentFunction.ChildFunctions[functionId], closure));
+			CurrentThread.PushStack(new Closure(CurrentIP.CurrentFunction.ChildFunctions[functionId], closure));
 
 			CurrentIP.InstructionIndex++;
 		}
@@ -355,7 +364,7 @@ namespace Lamn.VirtualMachine
 		{
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
-			PushStack(CurrentIP.ClosedVars[index - 1].contents);
+			CurrentThread.PushStack(CurrentIP.ClosedVars[index - 1].contents);
 
 			CurrentIP.InstructionIndex++;
 		}
@@ -364,7 +373,7 @@ namespace Lamn.VirtualMachine
 		{
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
-			Object o = PopStack();
+			Object o = CurrentThread.PopStack();
 
 			CurrentIP.ClosedVars[index - 1].contents = o;
 
@@ -377,7 +386,7 @@ namespace Lamn.VirtualMachine
 
 			Object constant = CurrentIP.CurrentFunction.Constants[index];
 
-			Object o = PopStack();
+			Object o = CurrentThread.PopStack();
 
 			GlobalTable[constant] = o;
 
@@ -390,7 +399,7 @@ namespace Lamn.VirtualMachine
 
 			Object constant = CurrentIP.CurrentFunction.Constants[index];
 
-			PushStack(GlobalTable[constant]);
+			CurrentThread.PushStack(GlobalTable[constant]);
 
 			CurrentIP.InstructionIndex++;
 		}
@@ -399,9 +408,9 @@ namespace Lamn.VirtualMachine
 		{
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
-			StackCell s = Stack[stackIndex - index];
+			StackCell s = CurrentThread.GetUnboxedAtIndex(CurrentThread.StackPosition - index);
 
-			Object o = PopStack();
+			Object o = CurrentThread.PopStack();
 
 			s.contents = o;
 
@@ -412,9 +421,9 @@ namespace Lamn.VirtualMachine
 		{
 			int index = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 
-			Object o = GetStackAtIndex(stackIndex - index);
+			Object o = CurrentThread.GetStackAtIndex(CurrentThread.StackPosition - index);
 
-			PushStack(o);
+			CurrentThread.PushStack(o);
 
 			CurrentIP.InstructionIndex++;
 		}
@@ -433,11 +442,11 @@ namespace Lamn.VirtualMachine
 			Object o;
 			if (preserve)
 			{
-				o = PeekStack();
+				o = CurrentThread.PeekStack();
 			}
 			else
 			{
-				o = PopStack();
+				o = CurrentThread.PopStack();
 			}
 
 			if (IsValueTrue(o))
@@ -456,7 +465,7 @@ namespace Lamn.VirtualMachine
 
 			for (int i = 0; i < count; i++)
 			{
-				PopStack();
+				CurrentThread.PopStack();
 			}
 
 			CurrentIP.InstructionIndex++;
@@ -464,78 +473,78 @@ namespace Lamn.VirtualMachine
 
 		public void DoEQ(UInt32 instruction)
 		{
-			Object op1 = (Object)PopStack();
-			Object op2 = (Object)PopStack();
-			PushStack(op1.Equals(op2));
+			Object op1 = (Object)CurrentThread.PopStack();
+			Object op2 = (Object)CurrentThread.PopStack();
+			CurrentThread.PushStack(op1.Equals(op2));
 			CurrentIP.InstructionIndex++;
 		}
 
 		public void DoNOT(UInt32 instruction)
 		{
-			Object op1 = PopStack();
+			Object op1 = CurrentThread.PopStack();
 
-			PushStack(!IsValueTrue(op1));
+			CurrentThread.PushStack(!IsValueTrue(op1));
 
 			CurrentIP.InstructionIndex++;
 		}
 
 		private void DoAND(UInt32 instruction)
 		{
-			Object op1 = PopStack();
-			Object op2 = PopStack();
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
 			if (IsValueTrue(op1) && IsValueTrue(op2))
 			{
-				PushStack(op1);
+				CurrentThread.PushStack(op1);
 			}
 			else
 			{
-				PushStack(false);
+				CurrentThread.PushStack(false);
 			}
 			CurrentIP.InstructionIndex++;
 		}
 
 		private void DoOR(UInt32 instruction)
 		{
-			Object op1 = PopStack();
-			Object op2 = PopStack();
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
 			if (IsValueTrue(op1) || IsValueTrue(op2))
 			{
-				PushStack(op2);
+				CurrentThread.PushStack(op2);
 			}
 			else
 			{
-				PushStack(false);
+				CurrentThread.PushStack(false);
 			}
 			CurrentIP.InstructionIndex++;
 		}
 
 		private void DoLESSEQ(UInt32 instruction)
 		{
-			Double op1 = (Double)PopStack();
-			Double op2 = (Double)PopStack();
-			PushStack(op2 <= op1);
+			Double op1 = (Double)CurrentThread.PopStack();
+			Double op2 = (Double)CurrentThread.PopStack();
+			CurrentThread.PushStack(op2 <= op1);
 			CurrentIP.InstructionIndex++;
 		}
 
 		private void DoLESS(UInt32 instruction)
 		{
-			Double op1 = (Double)PopStack();
-			Double op2 = (Double)PopStack();
-			PushStack(op2 < op1);
+			Double op1 = (Double)CurrentThread.PopStack();
+			Double op2 = (Double)CurrentThread.PopStack();
+			CurrentThread.PushStack(op2 < op1);
 			CurrentIP.InstructionIndex++;
 		}
 
 		private void DoNEWTABLE(UInt32 instruction)
 		{
-			PushStack(new Table());
+			CurrentThread.PushStack(new Table());
 			CurrentIP.InstructionIndex++;
 		}
 
 		private void DoPUTTABLE(UInt32 instruction)
 		{
-			Object value = PopStack();
-			Object key = PopStack();
-			Table table = (Table)PopStack();
+			Object value = CurrentThread.PopStack();
+			Object key = CurrentThread.PopStack();
+			Table table = (Table)CurrentThread.PopStack();
 
 			if (key is String)
 			{
@@ -564,11 +573,11 @@ namespace Lamn.VirtualMachine
 
 		private void DoGETTABLE(UInt32 instruction)
 		{
-			Object key = PopStack();
-			Table table = (Table)PopStack();
+			Object key = CurrentThread.PopStack();
+			Table table = (Table)CurrentThread.PopStack();
 			Object value = table.MetaGet(key);
 
-			PushStack(value);
+			CurrentThread.PushStack(value);
 
 			CurrentIP.InstructionIndex++;
 		}

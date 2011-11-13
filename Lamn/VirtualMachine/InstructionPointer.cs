@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.VirtualMachine
 {
-	class InstructionPointer
+	public class InstructionPointer
 	{
 		public Function CurrentFunction { get; private set; }
 		public int InstructionIndex { get; set; }

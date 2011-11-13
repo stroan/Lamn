@@ -14,7 +14,7 @@ namespace Sample
 		{
 			LamnEngine l = new LamnEngine();
 
-			l.Run(System.IO.File.ReadAllText("../../../TestFiles/Test7.lua"));
+			l.Run(System.IO.File.ReadAllText("../../../TestFiles/Test8.lua"));
 		}
 	}
 }
