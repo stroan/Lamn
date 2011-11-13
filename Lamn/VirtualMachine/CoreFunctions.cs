@@ -11,6 +11,8 @@ namespace Lamn.VirtualMachine
 		{
 			s.PutGlobal("getmetatable", new State.NativeFuncDelegate(GetMetaTable));
 			s.PutGlobal("setmetatable", new State.NativeFuncDelegate(SetMetaTable));
+			s.PutGlobal("tonumber", new State.NativeFuncDelegate(ToNumber));
+			s.PutGlobal("print", new State.NativeFuncDelegate(Print));
 		}
 
 		public static VarArgs GetMetaTable(VarArgs args)
@@ -38,6 +40,55 @@ namespace Lamn.VirtualMachine
 			}
 
 			return returnArgs;
+		}
+
+		public static VarArgs ToNumber(VarArgs args)
+		{
+			Object arg = args.PopArg();
+			VarArgs returnArgs = new VarArgs();
+
+			if (arg is Double)
+			{
+				returnArgs.PushArg(arg);
+			}
+
+			return args;
+		}
+
+		static VarArgs Print(VarArgs input)
+		{
+			foreach (Object o in input.Args)
+			{
+				if (o == null)
+				{
+					System.Console.Write("nil");
+				}
+				else if (o is Double)
+				{
+					System.Console.Write((Double)o);
+				}
+				else if (o is String)
+				{
+					System.Console.Write((String)o);
+				}
+				else if (o is Boolean)
+				{
+					System.Console.Write((Boolean)o);
+				}
+				else if (o is Table)
+				{
+					System.Console.Write(((Table)o).ToString());
+				}
+				else
+				{
+					System.Console.Write("[Unknown]");
+				}
+				System.Console.Write("\t");
+			}
+
+			System.Console.Write("\n");
+
+			return new VarArgs();
 		}
 	}
 }
