@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.VirtualMachine
 {
-	class Function
+	public class Function
 	{
 		public UInt32[] Bytecodes { get; private set; }
 		public Object[] Constants { get; private set; }

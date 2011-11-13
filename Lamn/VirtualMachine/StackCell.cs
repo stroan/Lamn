@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.VirtualMachine
 {
-	class StackCell
+	public class StackCell
 	{
 		public Object contents;
 	}

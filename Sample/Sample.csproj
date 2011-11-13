@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{F9901817-EA42-437E-8153-2452EBBE99A3}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{91E93CB6-228D-4812-B9E6-A71501CD77BB}</ProjectGuid>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Lamn</RootNamespace>
-    <AssemblyName>Lamn</AssemblyName>
+    <RootNamespace>Sample</RootNamespace>
+    <AssemblyName>Sample</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -33,9 +33,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup>
-    <StartupObject />
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -46,26 +43,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Compiler\AST.cs" />
-    <Compile Include="Compiler\Compiler.cs" />
-    <Compile Include="Compiler\CompilerState.cs" />
-    <Compile Include="Compiler\Lexer.cs" />
-    <Compile Include="Compiler\Parser.cs" />
-    <Compile Include="LamnEngine.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="VirtualMachine\Closure.cs" />
-    <Compile Include="VirtualMachine\CoreFunctions.cs" />
-    <Compile Include="VirtualMachine\Function.cs" />
-    <Compile Include="VirtualMachine\InstructionPointer.cs" />
-    <Compile Include="VirtualMachine\OpCodes.cs" />
-    <Compile Include="VirtualMachine\ReturnPoint.cs" />
-    <Compile Include="VirtualMachine\StackCell.cs" />
-    <Compile Include="VirtualMachine\Table.cs" />
-    <Compile Include="VirtualMachine\VarArgs.cs" />
-    <Compile Include="VirtualMachine\State.cs" />
-    <Compile Include="VirtualMachine\VMException.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\Lamn\Lamn.csproj">
+      <Project>{F9901817-EA42-437E-8153-2452EBBE99A3}</Project>
+      <Name>Lamn</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

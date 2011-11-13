@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.VirtualMachine
 {
-	class VarArgs
+	public class VarArgs
 	{
 		public LinkedList<Object> Args { get; private set; }
 

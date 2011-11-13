@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace Lamn.Compiler
 {
-	class Lexer
+	public class Lexer
 	{
 		public class Lexeme
 		{

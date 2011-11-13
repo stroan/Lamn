@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.VirtualMachine
 {
-	class State
+	public class State
 	{
 		public delegate VarArgs NativeFuncDelegate(VarArgs input);
 

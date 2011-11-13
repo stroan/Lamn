@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.VirtualMachine
 {
-	class Table
+	public class Table
 	{
 		Dictionary<Object, Object> hashPart = new Dictionary<Object, Object>();
 		public Table MetaTable { set; get; }
