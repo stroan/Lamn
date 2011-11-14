@@ -415,7 +415,12 @@ namespace Lamn.VirtualMachine
 
 			Object constant = CurrentIP.CurrentFunction.Constants[index];
 
-			CurrentThread.PushStack(GlobalTable[constant]);
+			Object obj = null;
+			if (GlobalTable.ContainsKey(constant))
+			{
+				obj = GlobalTable[constant];
+			}
+			CurrentThread.PushStack(obj);
 
 			CurrentIP.InstructionIndex++;
 		}
