@@ -6,7 +6,7 @@ namespace Lamn.VirtualMachine
 {
 	public class State
 	{
-		public delegate VarArgs NativeFuncDelegate(VarArgs input);
+		public delegate VarArgs NativeFuncDelegate(VarArgs input, State state);
 		public delegate void NativeCoreFuncDelegate(VarArgs intpu, State state);
 
 		private Dictionary<String, Function> FunctionMap { get; set; }
@@ -25,6 +25,8 @@ namespace Lamn.VirtualMachine
 
 		private Dictionary<Object, Object> GlobalTable { get; set; }
 
+		public System.IO.TextWriter OutStream { get; set; }
+
 		private const int stackSize = 512;
 
 		//private int baseIndex = 0;
@@ -35,6 +37,7 @@ namespace Lamn.VirtualMachine
 			GlobalTable = new Dictionary<Object, Object>();
 			ThreadStack = new Stack<ThreadState>();
 			ThreadStack.Push(new ThreadState(stackSize));
+			OutStream = new System.IO.StringWriter();
 		}
 
 		public void RegisterFunction(Function f)
@@ -301,7 +304,7 @@ namespace Lamn.VirtualMachine
 			else if (o is NativeFuncDelegate)
 			{
 				NativeFuncDelegate nativeFunc = (NativeFuncDelegate)o;
-				VarArgs returnArgs = nativeFunc(args);
+				VarArgs returnArgs = nativeFunc(args, this);
 				CurrentThread.PushStack(returnArgs);
 
 				CurrentIP.InstructionIndex++;

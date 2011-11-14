@@ -14,6 +14,8 @@ namespace Sample
 		{
 			LamnEngine l = new LamnEngine();
 
+			l.OutputStream = System.Console.Out;
+
 			l.Run(System.IO.File.ReadAllText("../../../TestFiles/Test8.lua"));
 		}
 	}

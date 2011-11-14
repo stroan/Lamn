@@ -16,6 +16,8 @@ namespace REPL
 			LamnEngine l = new LamnEngine();
 			l.SetGlobal("quit", new Lamn.VirtualMachine.State.NativeFuncDelegate(Quit));
 
+			l.OutputStream = System.Console.Out;
+
 			while (!finished)
 			{
 				System.Console.Write("> ");
@@ -32,7 +34,7 @@ namespace REPL
 			}
 		}
 
-		private static Lamn.VirtualMachine.VarArgs Quit(Lamn.VirtualMachine.VarArgs args)
+		private static Lamn.VirtualMachine.VarArgs Quit(Lamn.VirtualMachine.VarArgs args, Lamn.VirtualMachine.State s)
 		{
 			finished = true;
 			return new Lamn.VirtualMachine.VarArgs();

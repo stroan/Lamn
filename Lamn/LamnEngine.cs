@@ -12,6 +12,8 @@ namespace Lamn
 	{
 		private State LamnState { get; set; }
 
+		public System.IO.TextWriter OutputStream { get { return LamnState.OutStream; } set { LamnState.OutStream = value; } }
+
 		public LamnEngine()
 		{
 			LamnState = new State();
@@ -34,7 +36,7 @@ namespace Lamn
 			Compiler.Compiler compiler = new Compiler.Compiler();
 			VirtualMachine.Function compiledFunctions = compiler.CompileAST(outpu2);
 
-			compiledFunctions.Print();
+			compiledFunctions.Print(LamnState.OutStream);
 
 			VirtualMachine.Closure closure = new VirtualMachine.Closure(compiledFunctions, new VirtualMachine.StackCell[0]);
 			LamnState.CurrentThread.PushStack(closure);

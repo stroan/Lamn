@@ -18,7 +18,7 @@ namespace Lamn.VirtualMachine
 		}
 
 		#region Basic core functions
-		public static VarArgs GetMetaTable(VarArgs args)
+		public static VarArgs GetMetaTable(VarArgs args, State s)
 		{
 			Object o = args.PopArg();
 			VarArgs returnArgs = new VarArgs();
@@ -31,7 +31,7 @@ namespace Lamn.VirtualMachine
 			return returnArgs;
 		}
 
-		public static VarArgs SetMetaTable(VarArgs args)
+		public static VarArgs SetMetaTable(VarArgs args, State s)
 		{
 			Object obj = args.PopArg();
 			Object metatable = args.PopArg();
@@ -45,7 +45,7 @@ namespace Lamn.VirtualMachine
 			return returnArgs;
 		}
 
-		public static VarArgs ToNumber(VarArgs args)
+		public static VarArgs ToNumber(VarArgs args, State s)
 		{
 			Object arg = args.PopArg();
 			VarArgs returnArgs = new VarArgs();
@@ -58,38 +58,38 @@ namespace Lamn.VirtualMachine
 			return returnArgs;
 		}
 
-		static VarArgs Print(VarArgs input)
+		static VarArgs Print(VarArgs input, State s)
 		{
 			foreach (Object o in input.Args)
 			{
 				if (o == null)
 				{
-					System.Console.Write("nil");
+					s.OutStream.Write("nil");
 				}
 				else if (o is Double)
 				{
-					System.Console.Write((Double)o);
+					s.OutStream.Write((Double)o);
 				}
 				else if (o is String)
 				{
-					System.Console.Write((String)o);
+					s.OutStream.Write((String)o);
 				}
 				else if (o is Boolean)
 				{
-					System.Console.Write((Boolean)o);
+					s.OutStream.Write((Boolean)o);
 				}
 				else if (o is Table)
 				{
-					System.Console.Write(((Table)o).ToString());
+					s.OutStream.Write(((Table)o).ToString());
 				}
 				else
 				{
-					System.Console.Write("[Unknown]");
+					s.OutStream.Write("[Unknown]");
 				}
-				System.Console.Write("\t");
+				s.OutStream.Write("\t");
 			}
 
-			System.Console.Write("\n");
+			s.OutStream.Write("\n");
 
 			return new VarArgs();
 		}
@@ -106,7 +106,7 @@ namespace Lamn.VirtualMachine
 			return coroutineTable;
 		}
 
-		private static VarArgs CoroutineCreate(VarArgs args)
+		private static VarArgs CoroutineCreate(VarArgs args, State s)
 		{
 			Thread t = new Thread((Closure)args.PopArg());
 			t.State.PushStack(new YieldPoint());
