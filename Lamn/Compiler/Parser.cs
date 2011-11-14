@@ -701,7 +701,7 @@ namespace Lamn.Compiler
 			{
 				Stream.MoveNext();
 
-				prefixExp = ParseExpression();
+				prefixExp = new AST.ParenExpression(ParseExpression());
 
 				Stream.GetKeywordAndMove(")");
 			}

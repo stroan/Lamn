@@ -562,6 +562,11 @@ namespace Lamn.Compiler
 				throw new NotImplementedException();
 			}
 
+			public void Visit(AST.ParenExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
 			public void Visit(AST.UnOpExpression expression)
 			{
 				throw new NotImplementedException();
@@ -664,6 +669,11 @@ namespace Lamn.Compiler
 			}
 
 			public void Visit(AST.VarArgsExpression expression)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Visit(AST.ParenExpression expression)
 			{
 				throw new NotImplementedException();
 			}
@@ -783,6 +793,11 @@ namespace Lamn.Compiler
 			{
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - State.stackVars["..."]));
 				State.stackPosition++;
+			}
+
+			public void Visit(AST.ParenExpression expression)
+			{
+				expression.Expr.Visit(new ExpressionCompiler(State, 1));
 			}
 
 			public void Visit(AST.UnOpExpression expression)

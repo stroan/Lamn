@@ -31,6 +31,7 @@ namespace Lamn.Compiler
 			void Visit(BoolExpression expression);
 			void Visit(NilExpression expression);
 			void Visit(VarArgsExpression expression);
+			void Visit(ParenExpression expression);
 			void Visit(UnOpExpression expression);
 			void Visit(BinOpExpression expression);
 			void Visit(FunctionExpression expression);
@@ -403,6 +404,21 @@ namespace Lamn.Compiler
 			public UnOpExpression(String op, Expression expr)
 			{
 				Op = op;
+				Expr = expr;
+			}
+
+			public override void Visit(ExpressionVisitor visitor)
+			{
+				visitor.Visit(this);
+			}
+		}
+
+		public class ParenExpression : Expression
+		{
+			public Expression Expr { get; private set; }
+
+			public ParenExpression(Expression expr)
+			{
 				Expr = expr;
 			}
 
