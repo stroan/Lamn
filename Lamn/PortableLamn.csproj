@@ -36,9 +36,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Compiler\AssignerExpressionCompiler.cs" />
     <Compile Include="Compiler\AST.cs" />
+    <Compile Include="Compiler\ChunkCompiler.cs" />
     <Compile Include="Compiler\Compiler.cs" />
     <Compile Include="Compiler\CompilerState.cs" />
+    <Compile Include="Compiler\ExpressionCompiler.cs" />
+    <Compile Include="Compiler\FunctionCompiler.cs" />
+    <Compile Include="Compiler\LeftExpressionCompiler.cs" />
     <Compile Include="Compiler\Lexer.cs" />
     <Compile Include="Compiler\Parser.cs" />
     <Compile Include="LamnEngine.cs" />

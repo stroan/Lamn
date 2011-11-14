@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.Compiler
 {
-	class AST
+	public class AST
 	{
 		public interface StatementVisitor
 		{

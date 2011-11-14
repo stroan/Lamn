@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.Compiler
 {
-	class CompilerState
+	public class CompilerState
 	{
 		public List<UInt32> bytecodes = new List<UInt32>();
 		public List<Object> constants = new List<Object>();
