@@ -13,6 +13,9 @@ namespace Lamn.VirtualMachine
 			s.PutGlobal("setmetatable", new State.NativeFuncDelegate(SetMetaTable));
 			s.PutGlobal("tonumber", new State.NativeFuncDelegate(ToNumber));
 			s.PutGlobal("print", new State.NativeFuncDelegate(Print));
+			s.PutGlobal("error", new State.NativeFuncDelegate(Error));
+			s.PutGlobal("assert", new State.NativeFuncDelegate(Assert));
+			s.PutGlobal("loadstring", new State.NativeFuncDelegate(LoadString));
 
 			s.PutGlobal("coroutine", GetCoroutineTable());
 		}
@@ -58,6 +61,24 @@ namespace Lamn.VirtualMachine
 			return returnArgs;
 		}
 
+		static VarArgs Error(VarArgs args, State s)
+		{
+			throw new VMException();
+		}
+
+		static VarArgs Assert(VarArgs args, State s)
+		{
+			Object o = args.PopArg();
+			if (!State.IsValueTrue(o))
+			{
+				throw new VMException();
+			}
+
+			VarArgs newArgs = new VarArgs();
+			newArgs.PushArg(o);
+			return newArgs;
+		}
+
 		static VarArgs Print(VarArgs input, State s)
 		{
 			foreach (Object o in input.Args)
@@ -91,6 +112,11 @@ namespace Lamn.VirtualMachine
 
 			s.OutStream.Write("\n");
 
+			return new VarArgs();
+		}
+
+		static VarArgs LoadString(VarArgs input, State s)
+		{
 			return new VarArgs();
 		}
 		#endregion

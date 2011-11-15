@@ -604,7 +604,7 @@ namespace Lamn.VirtualMachine
 		}
 		#endregion
 
-		private bool IsValueTrue(Object o)
+		public static bool IsValueTrue(Object o)
 		{
 			if (o == null)
 			{
