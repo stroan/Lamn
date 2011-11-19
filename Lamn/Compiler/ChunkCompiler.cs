@@ -64,16 +64,22 @@ namespace Lamn.Compiler
 
 		public void Visit(AST.LocalFunctionStatement statement)
 		{
+			int funcStackPos = State.stackPosition;
+			State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(null)));
+			State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSEVAR(1));
+			State.stackVars[statement.Name] = State.stackPosition; State.stackPosition++;
+			State.newClosedVars[statement.Name] = State.closureStackPosition; State.closureStackPosition++;			
+			
 			FunctionCompiler funcCompiler = new FunctionCompiler(State, statement.Body, false);
 
 			VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
 			State.childFunctions.Add(function);
 
 			State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id)));
-
-			State.stackVars[statement.Name] = State.stackPosition;
-
 			State.stackPosition++;
+			
+			State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTSTACK(State.stackPosition - funcStackPos));
+			State.stackPosition--;
 		}
 
 		public void Visit(AST.IfStatement statement)
