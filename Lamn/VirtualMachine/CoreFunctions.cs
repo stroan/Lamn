@@ -11,10 +11,15 @@ namespace Lamn.VirtualMachine
 		{
 			s.PutGlobal("getmetatable", new State.NativeFuncDelegate(GetMetaTable));
 			s.PutGlobal("setmetatable", new State.NativeFuncDelegate(SetMetaTable));
+			
 			s.PutGlobal("tonumber", new State.NativeFuncDelegate(ToNumber));
+			
 			s.PutGlobal("print", new State.NativeFuncDelegate(Print));
+			
 			s.PutGlobal("error", new State.NativeFuncDelegate(Error));
 			s.PutGlobal("assert", new State.NativeFuncDelegate(Assert));
+			s.PutGlobal("pcall", new State.NativeCoreFuncDelegate(PCall));
+
 			s.PutGlobal("loadstring", new State.NativeFuncDelegate(LoadString));
 
 			s.PutGlobal("coroutine", GetCoroutineTable());
@@ -77,6 +82,17 @@ namespace Lamn.VirtualMachine
 			VarArgs newArgs = new VarArgs();
 			newArgs.PushArg(o);
 			return newArgs;
+		}
+
+		static void PCall(VarArgs args, State s)
+		{
+			Object func = args.PopArg();
+
+			s.MarkExceptionHandler();
+
+			s.CurrentThread.PushStack(func);
+			s.CurrentThread.PushStack(args);
+			s.DoCALL(OpCodes.MakeCALL(1));
 		}
 
 		static VarArgs Print(VarArgs input, State s)

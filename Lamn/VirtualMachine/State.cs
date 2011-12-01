@@ -51,88 +51,101 @@ namespace Lamn.VirtualMachine
 			{
 				UInt32 currentInstruction = CurrentIP.CurrentInstruction;
 				UInt32 opCode = currentInstruction & OpCodes.OPCODE_MASK;
-				switch (opCode)
+
+				try
 				{
-					case OpCodes.LOADK:
-						DoLOADK(currentInstruction);
-						break;
-					case OpCodes.ADD:
-						DoADD(currentInstruction);
-						break;
-					case OpCodes.RET:
-						DoRET(currentInstruction);
-						break;
-					case OpCodes.CALL:
-						DoCALL(currentInstruction);
-						break;
-					case OpCodes.POPVARGS:
-						DoPOPVARGS(currentInstruction);
-						break;
-					case OpCodes.CLOSEVARS:
-						DoCLOSEVARS(currentInstruction);
-						break;
-					case OpCodes.POPCLOSED:
-						DoPOPCLOSED(currentInstruction);
-						break;
-					case OpCodes.CLOSURE:
-						DoCLOSURE(currentInstruction);
-						break;
-					case OpCodes.GETUPVAL:
-						DoGETUPVAL(currentInstruction);
-						break;
-					case OpCodes.PUTUPVAL:
-						DoPUTUPVAL(currentInstruction);
-						break;
-					case OpCodes.GETGLOBAL:
-						DoGETGLOBAL(currentInstruction);
-						break;
-					case OpCodes.PUTGLOBAL:
-						DoPUTGLOBAL(currentInstruction);
-						break;
-					case OpCodes.GETSTACK:
-						DoGETSTACK(currentInstruction);
-						break;
-					case OpCodes.PUTSTACK:
-						DoPUTSTACK(currentInstruction);
-						break;
-					case OpCodes.JMP:
-						DoJMP(currentInstruction);
-						break;
-					case OpCodes.JMPTRUE:
-						DoJMPTRUE(currentInstruction);
-						break;
-					case OpCodes.POPSTACK:
-						DoPOPSTACK(currentInstruction);
-						break;
-					case OpCodes.EQ:
-						DoEQ(currentInstruction);
-						break;
-					case OpCodes.NOT:
-						DoNOT(currentInstruction);
-						break;
-					case OpCodes.AND:
-						DoAND(currentInstruction);
-						break;
-					case OpCodes.OR:
-						DoOR(currentInstruction);
-						break;
-					case OpCodes.LESSEQ:
-						DoLESSEQ(currentInstruction);
-						break;
-					case OpCodes.LESS:
-						DoLESS(currentInstruction);
-						break;
-					case OpCodes.NEWTABLE:
-						DoNEWTABLE(currentInstruction);
-						break;
-					case OpCodes.PUTTABLE:
-						DoPUTTABLE(currentInstruction);
-						break;
-					case OpCodes.GETTABLE:
-						DoGETTABLE(currentInstruction);
-						break;
-					default:
-						throw new VMException();
+					switch (opCode)
+					{
+						case OpCodes.LOADK:
+							DoLOADK(currentInstruction);
+							break;
+						case OpCodes.ADD:
+							DoADD(currentInstruction);
+							break;
+						case OpCodes.RET:
+							DoRET(currentInstruction);
+							break;
+						case OpCodes.CALL:
+							DoCALL(currentInstruction);
+							break;
+						case OpCodes.POPVARGS:
+							DoPOPVARGS(currentInstruction);
+							break;
+						case OpCodes.CLOSEVARS:
+							DoCLOSEVARS(currentInstruction);
+							break;
+						case OpCodes.POPCLOSED:
+							DoPOPCLOSED(currentInstruction);
+							break;
+						case OpCodes.CLOSURE:
+							DoCLOSURE(currentInstruction);
+							break;
+						case OpCodes.GETUPVAL:
+							DoGETUPVAL(currentInstruction);
+							break;
+						case OpCodes.PUTUPVAL:
+							DoPUTUPVAL(currentInstruction);
+							break;
+						case OpCodes.GETGLOBAL:
+							DoGETGLOBAL(currentInstruction);
+							break;
+						case OpCodes.PUTGLOBAL:
+							DoPUTGLOBAL(currentInstruction);
+							break;
+						case OpCodes.GETSTACK:
+							DoGETSTACK(currentInstruction);
+							break;
+						case OpCodes.PUTSTACK:
+							DoPUTSTACK(currentInstruction);
+							break;
+						case OpCodes.JMP:
+							DoJMP(currentInstruction);
+							break;
+						case OpCodes.JMPTRUE:
+							DoJMPTRUE(currentInstruction);
+							break;
+						case OpCodes.POPSTACK:
+							DoPOPSTACK(currentInstruction);
+							break;
+						case OpCodes.EQ:
+							DoEQ(currentInstruction);
+							break;
+						case OpCodes.NOT:
+							DoNOT(currentInstruction);
+							break;
+						case OpCodes.AND:
+							DoAND(currentInstruction);
+							break;
+						case OpCodes.OR:
+							DoOR(currentInstruction);
+							break;
+						case OpCodes.LESSEQ:
+							DoLESSEQ(currentInstruction);
+							break;
+						case OpCodes.LESS:
+							DoLESS(currentInstruction);
+							break;
+						case OpCodes.NEWTABLE:
+							DoNEWTABLE(currentInstruction);
+							break;
+						case OpCodes.PUTTABLE:
+							DoPUTTABLE(currentInstruction);
+							break;
+						case OpCodes.GETTABLE:
+							DoGETTABLE(currentInstruction);
+							break;
+						default:
+							throw new VMException();
+					}
+
+					if (CurrentThread.ExceptionHandlers.Count > 0 && CurrentThread.ExceptionHandlers.Peek().InstructionNumber == CurrentIP.InstructionIndex)
+					{
+						CurrentThread.ExceptionHandlers.Pop();
+					}
+				}
+				catch (Exception e)
+				{
+					ThrowException(e);
 				}
 			}
 		}
@@ -172,6 +185,28 @@ namespace Lamn.VirtualMachine
 			CurrentThread.PushStack(args);
 
 			CurrentIP.InstructionIndex++;
+		}
+		#endregion
+
+		#region Exception handlers
+		public void MarkExceptionHandler()
+		{
+			CurrentThread.PushExceptionHandler();
+		}
+
+		public void ThrowException(Exception e)
+		{
+			while (CurrentThread.ExceptionHandlers.Count == 0)
+			{
+				ThreadStack.Pop();
+			}
+
+			if (ThreadStack.Count == 0)
+			{
+				throw e;
+			}
+
+			CurrentThread.HandleException(e);
 		}
 		#endregion
 
@@ -266,7 +301,7 @@ namespace Lamn.VirtualMachine
 			}
 		}
 
-		private void DoCALL(UInt32 instruction)
+		public void DoCALL(UInt32 instruction)
 		{
 			int numArgs = (int)((instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT);
 			int numPop = (int)((instruction & OpCodes.OP2_MASK) >> OpCodes.OP2_SHIFT);

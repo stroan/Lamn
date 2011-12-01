@@ -12,6 +12,7 @@ namespace Lamn.VirtualMachine
 		public int StackPosition { get; private set; }
 		public int BasePosition { get; set; }
 		public InstructionPointer CurrentInstruction { get; set; }
+		public Stack<ExceptionHandler> ExceptionHandlers { get; private set; }
 
 		public ThreadState(int size)
 		{
@@ -19,6 +20,7 @@ namespace Lamn.VirtualMachine
 			StackPosition = 0;
 			BasePosition = 0;
 			ClosureStack = new LinkedList<StackCell>();
+			ExceptionHandlers = new Stack<ExceptionHandler>();
 		}
 
 		public void PushStack(Object o)
@@ -38,6 +40,7 @@ namespace Lamn.VirtualMachine
 			StackPosition--;
 			Object retValue = Stack[StackPosition].contents;
 			Stack[StackPosition] = null;
+
 			return retValue;
 		}
 
@@ -54,6 +57,35 @@ namespace Lamn.VirtualMachine
 		public StackCell GetUnboxedAtIndex(int index)
 		{
 			return Stack[index];
+		}
+
+		public void PushExceptionHandler()
+		{
+			ExceptionHandler e = new ExceptionHandler(StackPosition, ClosureStack.Count, CurrentInstruction.InstructionIndex, BasePosition);
+			ExceptionHandlers.Push(e);
+		}
+
+		public void HandleException(Exception e)
+		{
+			ExceptionHandler handler = ExceptionHandlers.Pop();
+
+			while (StackPosition > handler.StackPosition)
+			{
+				PopStack();
+			}
+
+			while (ClosureStack.Count > handler.ClosureStackPosition)
+			{
+				ClosureStack.RemoveFirst();
+			}
+
+			BasePosition = handler.BasePosition;
+			CurrentInstruction.InstructionIndex = handler.InstructionNumber + 1;
+
+			VarArgs retArgs = new VarArgs();
+			retArgs.PushArg("foo bar");
+			retArgs.PushArg(false);
+			PushStack(retArgs);
 		}
 	}
 }
