@@ -83,7 +83,7 @@ namespace Lamn.VirtualMachine
 			CurrentInstruction.InstructionIndex = handler.InstructionNumber + 1;
 
 			VarArgs retArgs = new VarArgs();
-			retArgs.PushArg("foo bar");
+			retArgs.PushArg(e.Message);
 			retArgs.PushArg(false);
 			PushStack(retArgs);
 		}
