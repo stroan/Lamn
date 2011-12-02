@@ -8,6 +8,17 @@ namespace Lamn.Compiler
 {
 	public class Lexer
 	{
+		public class Position
+		{
+			public int LineNumber { get; private set; }
+			public int ColumnNumber { get; private set; }
+
+			public Position(int line, int col)
+			{
+				LineNumber = line;
+				ColumnNumber = col;
+			}
+		}
 		public class Lexeme
 		{
 			public enum Type
@@ -25,13 +36,17 @@ namespace Lamn.Compiler
 			public String Value { get; private set; }
 			public double? NumberValue { get; private set; }
 
-			public Lexeme(String value, Type type)
+			public Position FilePosition { get; private set; }
+
+			public Lexeme(String value, Type type, Position pos)
 			{
 				LexemeType = type;
 				Value = value;
+				FilePosition = pos;
 			}
 
-			public Lexeme(String value, double numberValue) : this(value, Type.NUMBER)
+			public Lexeme(String value, double numberValue, Position pos)
+				: this(value, Type.NUMBER, pos)
 			{
 				NumberValue = numberValue;
 			}
@@ -43,7 +58,7 @@ namespace Lamn.Compiler
 
 		public class Rule
 		{
-			public delegate Lexeme Producer(String value);
+			public delegate Lexeme Producer(String value, Position pos);
 	
 			private Regex regex;
 			private Producer producer;
@@ -58,31 +73,32 @@ namespace Lamn.Compiler
 
 			public Lexeme Match(StringSource source)
 			{
+				Position pos = source.SourcePos;
 				Match match = source.TryExtract(regex);
 				if (!match.Success) { return null; }
 
-				return producer(match.Value);
+				return producer(match.Value, pos);
 			}
 
 			private static Producer DefaultProducer(Lexeme.Type type) 
 			{
-				return (value) => new Lexeme(value, type);
+				return (value, pos) => new Lexeme(value, type, pos);
 			}
 
 			#region String producer
 			public static Rule.Producer QuoteStringProducer { get { return new Rule.Producer(AcceptQuoteStringLexeme); } }
 			public static Rule.Producer LongStringProducer { get { return new Rule.Producer(AcceptLongStringLexeme); } }
 
-			private static Lexeme AcceptQuoteStringLexeme(String value)
+			private static Lexeme AcceptQuoteStringLexeme(String value, Position pos)
 			{
-				return new Lexeme(Regex.Unescape(value.Substring(1,value.Length - 2)), Lexeme.Type.STRING);
+				return new Lexeme(Regex.Unescape(value.Substring(1,value.Length - 2)), Lexeme.Type.STRING, pos);
 			}
 
-			private static Lexeme AcceptLongStringLexeme(String value)
+			private static Lexeme AcceptLongStringLexeme(String value, Position pos)
 			{
 				int secondOpenBraceIndex = value.IndexOf('[', 1);
 
-				return new Lexeme(value.Substring(secondOpenBraceIndex, value.Length - (secondOpenBraceIndex * 2)), Lexeme.Type.STRING);
+				return new Lexeme(value.Substring(secondOpenBraceIndex, value.Length - (secondOpenBraceIndex * 2)), Lexeme.Type.STRING, pos);
 			}
 			#endregion
 
@@ -90,14 +106,14 @@ namespace Lamn.Compiler
 			public static Rule.Producer HexNumberProducer { get { return new Rule.Producer(AcceptHexNumberLexeme); } }
 			public static Rule.Producer DecimalNumberProducer { get { return new Rule.Producer(AcceptDecimalNumberLexeme); } }
 
-			private static Lexeme AcceptHexNumberLexeme(String value)
+			private static Lexeme AcceptHexNumberLexeme(String value, Position pos)
 			{
-				return new Lexeme(value, (double)long.Parse(value.Substring(2), System.Globalization.NumberStyles.HexNumber));
+				return new Lexeme(value, (double)long.Parse(value.Substring(2), System.Globalization.NumberStyles.HexNumber), pos);
 			}
 
-			private static Lexeme AcceptDecimalNumberLexeme(String value)
+			private static Lexeme AcceptDecimalNumberLexeme(String value, Position pos)
 			{
-				return new Lexeme(value, Double.Parse(value, System.Globalization.NumberStyles.Float));
+				return new Lexeme(value, Double.Parse(value, System.Globalization.NumberStyles.Float), pos);
 			}
 			#endregion
 		}
@@ -107,12 +123,21 @@ namespace Lamn.Compiler
 			private String RawString { get; set; }
 			private int StartPos { get; set; }
 
+			private int LineNumber { get; set; }
+			private int ColumnNumber { get; set; }
+
+			public Position SourcePos { get {
+				return new Position(LineNumber, ColumnNumber);
+			} }
+
 			public bool EOF { get { return StartPos >= RawString.Length; } }
 
 			public StringSource(String source)
 			{
 				RawString = source;
 				StartPos = 0;
+				LineNumber = 0;
+				ColumnNumber = 0;
 			}
 
 			public Match TryExtract(Regex regex)
@@ -122,6 +147,20 @@ namespace Lamn.Compiler
 				if (match.Success)
 				{
 					StartPos += match.Value.Length;
+
+					String value = match.Value;
+					foreach (Char c in value)
+					{
+						if (c == '\n')
+						{
+							LineNumber++;
+							ColumnNumber = 0;
+						}
+						else
+						{
+							ColumnNumber++;
+						}
+					}
 				}
 
 				return match;

@@ -19,7 +19,7 @@ namespace Lamn.Compiler
 
 			public Lexer.Lexeme Head { 
 				get {
-					if (EOF) { return new Lexer.Lexeme(null, Lexer.Lexeme.Type.EOS); }
+					if (EOF) { return new Lexer.Lexeme(null, Lexer.Lexeme.Type.EOS, null); }
 					return Source[Position]; 
 				} 
 			}
@@ -41,7 +41,7 @@ namespace Lamn.Compiler
 						return Source[index];
 					}
 
-					return new Lexer.Lexeme(null, Lexer.Lexeme.Type.EOS);
+					return new Lexer.Lexeme(null, Lexer.Lexeme.Type.EOS, null);
 				}
 			}
 
