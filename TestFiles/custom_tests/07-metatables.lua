@@ -20,16 +20,19 @@ end
 v1 = Vector.new()
 v2 = Vector.new()
 
-print("v1", v1)
-print("v2", v2)
+assert(v1.x == 0)
+assert(v1.y == 0)
+assert(v2.x == 0)
+assert(v2.y == 0)
 
-print("v1.x", v1.x)
 v1.x = 2
-print ("v1", v1)
+assert(v1.x == 2)
 v2.y = 3
-print ("v2", v2)
+assert(v2.y == 3)
 
 v1:add(v2)
-print("v1", v1)
-print("v1.x", v1.x)
-print("v1 + v2", v1 + v2)
+assert(v1.x == 2)
+assert(v1.y == 3)
+
+assert((v1 + v2).x == 2)
+assert((v1 + v2).y == 6)

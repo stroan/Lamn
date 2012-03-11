@@ -1,0 +1,3 @@
+assert(_REQUIREDNAME=='B');require 'A'NAME = 'B.lua'
+REQUIRED = _REQUIREDNAME
+return AA

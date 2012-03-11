@@ -23,14 +23,14 @@ namespace REPL
 				System.Console.Write("> ");
 				String line = System.Console.ReadLine();
 
-				try
+				//try
 				{
 					l.Run(line);
 				}
-				catch (Exception e)
+				/*catch (Exception e)
 				{
 					System.Console.WriteLine(e.ToString());
-				}
+				}*/
 			}
 		}
 

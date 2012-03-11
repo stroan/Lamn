@@ -473,12 +473,14 @@ namespace Lamn.Compiler
 		{
 			Stream.MoveNext(); // Drop function
 
-			String functionName = Stream.GetName().Value;
+			Lexer.Lexeme firstToken = Stream.GetName();
+			Lexer.Position pos = firstToken.FilePosition;
+			String functionName = firstToken.Value;
 			Stream.MoveNext();
 
 			AST.Body body = ParseBody();
 
-			return new AST.LocalFunctionStatement(functionName, body);
+			return new AST.LocalFunctionStatement(functionName, body, pos);
 		}
 
 		/* body ->  `(' parlist `)' chunk END */
@@ -531,8 +533,11 @@ namespace Lamn.Compiler
 		 */
 		private AST.LocalAssignmentStatement ParseLocalDecl()
 		{
+			Lexer.Lexeme firstToken = Stream.GetName();
+			Lexer.Position pos = firstToken.FilePosition;
+
 			List<String> variableNames = new List<String>();
-			variableNames.Add(Stream.GetName().Value);
+			variableNames.Add(firstToken.Value);
 			Stream.MoveNext();
 
 			while (Stream.IsKeyword(","))
@@ -551,7 +556,7 @@ namespace Lamn.Compiler
 				expressions = ParseExpressionList1();
 			}
 
-			return new AST.LocalAssignmentStatement(variableNames, expressions);
+			return new AST.LocalAssignmentStatement(variableNames, expressions, pos);
 		}
 
 		/* explist1 -> expr { `,' expr } */

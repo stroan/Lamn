@@ -531,7 +531,16 @@ namespace Lamn.VirtualMachine
 		{
 			Object op1 = (Object)CurrentThread.PopStack();
 			Object op2 = (Object)CurrentThread.PopStack();
-			CurrentThread.PushStack(op1.Equals(op2));
+
+			if (op1 == null)
+			{
+				CurrentThread.PushStack(op2 == null);
+			}
+			else
+			{
+				CurrentThread.PushStack(op1.Equals(op2));
+			}
+
 			CurrentIP.InstructionIndex++;
 		}
 

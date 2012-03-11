@@ -1,0 +1,151 @@
+print('testando strings e strlib')
+
+assert('alo' < 'alo1')
+assert('' < 'a')
+assert('alo\0alo' < 'alo\0b')
+assert('alo\0alo\0\0' > 'alo\0alo\0')
+assert('alo' < 'alo\0')
+assert('alo\0' > 'alo')
+assert('\0' < '\1')
+assert('\0\0' < '\0\1')
+assert('\1\0a\0a' <= '\1\0a\0a')
+assert(not ('\1\0a\0b' <= '\1\0a\0a'))
+assert('\0\0\0' < '\0\0\0\0')
+assert(not('\0\0\0\0' < '\0\0\0'))
+assert('\0\0\0' <= '\0\0\0\0')
+assert(not('\0\0\0\0' <= '\0\0\0'))
+assert('\0\0\0' <= '\0\0\0')
+assert('\0\0\0' >= '\0\0\0')
+assert(not ('\0\0b' < '\0\0a\0'))
+print('+')
+
+assert(strsub("123456789",2,4) == "234")
+assert(strsub("123456789",7) == "789")
+assert(strsub("123456789",7,6) == "")
+assert(strsub("123456789",7,7) == "7")
+assert(strsub("123456789",0,0) == "")
+assert(strsub("123456789",-10,10) == "123456789")
+assert(strsub("123456789",1,9) == "123456789")
+assert(strsub("123456789",-10,-20) == "")
+assert(strsub("123456789",-1) == "9")
+assert(strsub("123456789",-4) == "6789")
+assert(strsub("123456789",-6, -4) == "456")
+assert(strsub("\000123456789",3,5) == "234")
+assert(strsub("\000123456789",8) == "789")
+print('+')
+
+assert(strfind("123456789", "345") == 3)
+a,b = strfind("123456789", "345")
+assert(strsub("123456789", a, b) == "345")
+assert(strfind("1234567890123456789", "345", 3) == 3)
+assert(strfind("1234567890123456789", "345", 4) == 13)
+assert(strfind("1234567890123456789", "346", 4) == nil)
+assert(strfind("1234567890123456789", ".45", -9) == 13)
+assert(strfind("abcdefg", "\0", 5, 1) == nil)
+assert(strfind("", "") == 1)
+assert(strfind('', 'aaa', 1) == nil)
+assert(strfind('alo(.)alo', '(.)', 1, 1) == 4)
+print('+')
+
+assert(strlen("") == 0)
+assert(strlen("\0\0\0") == 3)
+assert(strlen("1234567890") == 10)
+
+assert(strbyte("a") == 97)
+assert(strbyte("á") > 127)
+assert(strbyte(strchar(255)) == 255)
+assert(strbyte(strchar(0)) == 0)
+assert(strbyte("\0") == 0)
+assert(strbyte("\0\0alo\0x", -1) == strbyte('x'))
+assert(strbyte("ba", 2) == 97)
+assert(strbyte("\n\n", 2) == 10)
+assert(strbyte("") == nil)
+assert(strbyte("hi", -3) == nil)
+assert(strbyte("hi", 3) == nil)
+assert(strchar() == "")
+assert(strchar(0, 255, 0) == "\0\255\0")
+assert(strchar(0, strbyte("á"), 0) == "\0á\0")
+print('+')
+
+assert(strupper("ab\0c") == "AB\0C")
+assert(strlower("\0ABCc%$") == "\0abcc%$")
+assert(strrep('teste', 0) == '')
+assert(strrep('tés\00tê', 2) == 'tés\0têtés\000tê')
+assert(strrep('', 10) == '')
+
+for i=0,30 do assert(strlen(strrep('a', i)) == i) end
+
+assert(type(tostring(nil)) == 'string')
+assert(type(tostring(12)) == 'string')
+assert(''..12 == '12' and type(12 .. '') == 'string')
+assert(strfind(tostring{}, 'table'))
+assert(strfind(tostring(print), 'function'))
+assert(tostring(1234567890123) == '1234567890123')
+assert(strlen(tostring('\0')) == 1)
+print('+')
+
+x = '"ílo"\n\\'
+assert(format('%q%s', x, x) == '"\\"ílo\\"\\\n\\\\""ílo"\n\\')
+assert(format("\0%c\0%c%x\0", strbyte("á"), strbyte("b"), 140) ==
+              "\0á\0b8c\0")
+assert(format('') == "")
+assert(format("%c",34)..format("%c",48)..format("%c",90)..format("%c",100) ==
+       format("%c%c%c%c", 34, 48, 90, 100))
+assert(format("%s\0 is not \0%s", 'not be', 'be') == 'not be\0 is not \0be')
+assert(format("%%%d %010d", 10, 23) == "%10 0000000023")
+assert(tonumber(format("%f", 10.3)) == 10.3)
+x = format('"%-50s"', 'a')
+assert(strlen(x) == 52)
+assert(strsub(x, 1, 4) == '"a  ')
+
+assert(format("-%.20s.20s", strrep("%", 2000)) == "-"..strrep("%", 20)..".20s")
+assert(format('"-%20s.20s"', strrep("%", 2000)) ==
+       format("%q", "-"..strrep("%", 2000)..".20s"))
+
+
+-- longest number that can be formated
+assert(strlen(format('%99.99f', -1e308)) >= 100)
+
+assert(dostring("a = 1\n--comentário sem EOL no final"))
+
+
+assert(table.concat{} == "")
+assert(table.concat({}, 'x') == "")
+assert(table.concat({'\0', '\0\1', '\0\1\2'}, '.\0.') == "\0.\0.\0\1.\0.\0\1\2")
+local a = {}; for i=1,3000 do a[i] = "xuxu" end
+assert(table.concat(a, "123").."123" == strrep("xuxu123", 3000))
+assert(table.concat(a, "b", 20, 20) == "xuxu")
+assert(table.concat(a, "", 20, 21) == "xuxuxuxu")
+assert(table.concat(a, "", 22, 21) == "")
+assert(table.concat(a, "3", 2999) == "xuxu3xuxu")
+
+local locales = { "ptb", "ISO-8859-1", "pt_BR" }
+local function trylocale (w)
+  for _, l in ipairs(locales) do
+    if setlocale(l, w) then return true end
+  end
+  return false
+end
+
+if not trylocale("collate")  then
+  print("locale not supported")
+else
+  assert("alo" < "álo" and "álo" < "amo")
+end
+
+if not trylocale("ctype") then
+  print("locale not supported")
+else
+  assert(gsub("áéíóú", "%a", "x") == "xxxxx")
+  assert(gsub("áÁéÉ", "%l", "x") == "xÁxÉ")
+  assert(gsub("áÁéÉ", "%u", "x") == "áxéx")
+  assert(strupper"áÁé{xuxu}ção" == "ÁÁÉ{XUXU}ÇÃO")
+end
+
+setlocale("C")
+assert(setlocale() == 'C')
+assert(setlocale(nil, "numeric") == 'C')
+
+print('OK')
+
+

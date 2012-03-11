@@ -369,7 +369,12 @@ namespace Lamn.Compiler
 				{
 					numResults = numVars - i;
 				}
-				rightStackPositions[i] = State.stackPosition;
+
+				for (int j = 0; j < numResults; j++)
+				{
+					rightStackPositions[i + j] = State.stackPosition + j;
+				}
+
 				statement.Expressions[i].Visit(new ExpressionCompiler(State, numResults));
 			}
 
@@ -402,6 +407,7 @@ namespace Lamn.Compiler
 			State.currentBreakLabel = oldBreakLabel;
 
 			statement.Condition.Visit(new ExpressionCompiler(State, 1));
+			State.bytecodes.Add(VirtualMachine.OpCodes.NOT);
 
 			State.bytecodes.Add(VirtualMachine.OpCodes.JMPTRUE);
 			State.stackPosition--;

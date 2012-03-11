@@ -5,10 +5,16 @@ function iterator(max, current)
   return current + 1
 end
 
+a = 0
 for i in iterator, 10, 0 do
-  print(1,i)
+  a = a + i
 end
 
+assert(a == 55)
+
+a = 0
 for i = 1,10 do
-  print(2,i)
+  a = a + i
 end
+
+assert(a == 55)

@@ -53,6 +53,8 @@ namespace Lamn.Compiler
 		}
 
 		public abstract class Statement {
+			public Lexer.Position SourcePos { get; protected set; }
+
 			public abstract void Visit(StatementVisitor visitor);
 		}
 
@@ -61,10 +63,11 @@ namespace Lamn.Compiler
 			public List<String> Variables { get; private set; }
 			public List<Expression> Expressions { get; private set; }
 
-			public LocalAssignmentStatement(List<String> variables, List<Expression> expressions)
+			public LocalAssignmentStatement(List<String> variables, List<Expression> expressions, Lexer.Position position)
 			{
 				Variables = variables;
 				Expressions = expressions;
+				SourcePos = position;
 			}
 
 			public override void Visit(StatementVisitor visitor)
@@ -78,10 +81,11 @@ namespace Lamn.Compiler
 			public String Name { get; private set; }
 			public Body Body { get; private set; }
 
-			public LocalFunctionStatement(String name,Body body)
+			public LocalFunctionStatement(String name, Body body, Lexer.Position position)
 			{
 				Name = name;
 				Body = body;
+				SourcePos = position;
 			}
 
 			public override void Visit(StatementVisitor visitor)
