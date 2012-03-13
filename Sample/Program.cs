@@ -16,7 +16,7 @@ namespace Sample
 
 			l.OutputStream = System.Console.Out;
 
-			l.Run(System.IO.File.ReadAllText("../../../TestFiles/custom_tests/Test8.lua"));
+			l.Run(System.IO.File.ReadAllText("../../../TestFiles/std_tests/literals.lua"));
 		}
 	}
 }

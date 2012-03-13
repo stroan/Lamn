@@ -86,6 +86,10 @@ namespace Lamn.Compiler
 			{
 				State.bytecodes.Add(VirtualMachine.OpCodes.NOT);
 			}
+			else if (expression.Op.Equals("-"))
+			{
+				State.bytecodes.Add(VirtualMachine.OpCodes.NEG);
+			}
 			else
 			{
 				throw new NotImplementedException();
@@ -135,6 +139,12 @@ namespace Lamn.Compiler
 				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
 
 				State.labels.Add(afterLabel, State.bytecodes.Count);
+			}
+			else if (expression.Op.Equals(".."))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.CONCAT);
 			}
 			else
 			{

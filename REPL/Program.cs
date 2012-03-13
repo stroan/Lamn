@@ -34,7 +34,7 @@ namespace REPL
 			}
 		}
 
-		private static Lamn.VirtualMachine.VarArgs Quit(Lamn.VirtualMachine.VarArgs args, Lamn.VirtualMachine.State s)
+		private static Lamn.VirtualMachine.VarArgs Quit(Lamn.VirtualMachine.VarArgs args, Lamn.LamnEngine s)
 		{
 			finished = true;
 			return new Lamn.VirtualMachine.VarArgs();

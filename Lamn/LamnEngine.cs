@@ -10,13 +10,13 @@ namespace Lamn
 {
 	public class LamnEngine
 	{
-		private State LamnState { get; set; }
+		public State LamnState { get; private set; }
 
 		public System.IO.TextWriter OutputStream { get { return LamnState.OutStream; } set { LamnState.OutStream = value; } }
 
 		public LamnEngine()
 		{
-			LamnState = new State();
+			LamnState = new State(this);
 			CoreFunctions.RegisterCoreFunctions(LamnState);
 		}
 
@@ -25,7 +25,7 @@ namespace Lamn
 			LamnState.PutGlobal(name, userFunc);
 		}
 
-		public void Run(String source) 
+		public VirtualMachine.Closure CompileString(String source)
 		{
 			Lexer lexer = new Lexer();
 			List<Lexer.Lexeme> output = lexer.lex(source);
@@ -38,7 +38,12 @@ namespace Lamn
 
 			compiledFunctions.Print(LamnState.OutStream);
 
-			VirtualMachine.Closure closure = new VirtualMachine.Closure(compiledFunctions, new VirtualMachine.StackCell[0]);
+			return new VirtualMachine.Closure(compiledFunctions, new VirtualMachine.StackCell[0]);
+		}
+
+		public void Run(String source) 
+		{
+			VirtualMachine.Closure closure = CompileString(source);
 			LamnState.CurrentThread.PushStack(closure);
 			LamnState.Call();
 			LamnState.Run();

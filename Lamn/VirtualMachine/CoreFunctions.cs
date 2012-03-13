@@ -20,13 +20,15 @@ namespace Lamn.VirtualMachine
 			s.PutGlobal("assert", new State.NativeFuncDelegate(Assert));
 			s.PutGlobal("pcall", new State.NativeCoreFuncDelegate(PCall));
 
-			s.PutGlobal("loadstring", new State.NativeFuncDelegate(LoadString));
+			s.PutGlobal("load", new State.NativeFuncDelegate(LoadString));
+			s.PutGlobal("dostring", new State.NativeCoreFuncDelegate(DoString));
 
 			s.PutGlobal("coroutine", GetCoroutineTable());
+			s.PutGlobal("string", GetStringTable());
 		}
 
 		#region Basic core functions
-		public static VarArgs GetMetaTable(VarArgs args, State s)
+		public static VarArgs GetMetaTable(VarArgs args, LamnEngine s)
 		{
 			Object o = args.PopArg();
 			VarArgs returnArgs = new VarArgs();
@@ -39,7 +41,7 @@ namespace Lamn.VirtualMachine
 			return returnArgs;
 		}
 
-		public static VarArgs SetMetaTable(VarArgs args, State s)
+		public static VarArgs SetMetaTable(VarArgs args, LamnEngine s)
 		{
 			Object obj = args.PopArg();
 			Object metatable = args.PopArg();
@@ -53,7 +55,7 @@ namespace Lamn.VirtualMachine
 			return returnArgs;
 		}
 
-		public static VarArgs ToNumber(VarArgs args, State s)
+		public static VarArgs ToNumber(VarArgs args, LamnEngine s)
 		{
 			Object arg = args.PopArg();
 			VarArgs returnArgs = new VarArgs();
@@ -66,12 +68,12 @@ namespace Lamn.VirtualMachine
 			return returnArgs;
 		}
 
-		static VarArgs Error(VarArgs args, State s)
+		static VarArgs Error(VarArgs args, LamnEngine s)
 		{
 			throw new VMException();
 		}
 
-		static VarArgs Assert(VarArgs args, State s)
+		static VarArgs Assert(VarArgs args, LamnEngine s)
 		{
 			Object o = args.PopArg();
 			if (!State.IsValueTrue(o))
@@ -84,56 +86,85 @@ namespace Lamn.VirtualMachine
 			return newArgs;
 		}
 
-		static void PCall(VarArgs args, State s)
+		static void PCall(VarArgs args, LamnEngine s)
 		{
 			Object func = args.PopArg();
 
-			s.MarkExceptionHandler();
+			s.LamnState.MarkExceptionHandler();
 
-			s.CurrentThread.PushStack(func);
-			s.CurrentThread.PushStack(args);
-			s.DoCALL(OpCodes.MakeCALL(1));
+			s.LamnState.CurrentThread.PushStack(func);
+			s.LamnState.CurrentThread.PushStack(args);
+			s.LamnState.DoCALL(OpCodes.MakeCALL(1));
 		}
 
-		static VarArgs Print(VarArgs input, State s)
+		static VarArgs Print(VarArgs input, LamnEngine s)
 		{
 			foreach (Object o in input.Args)
 			{
 				if (o == null)
 				{
-					s.OutStream.Write("nil");
+					s.LamnState.OutStream.Write("nil");
 				}
 				else if (o is Double)
 				{
-					s.OutStream.Write((Double)o);
+					s.LamnState.OutStream.Write((Double)o);
 				}
 				else if (o is String)
 				{
-					s.OutStream.Write((String)o);
+					s.LamnState.OutStream.Write((String)o);
 				}
 				else if (o is Boolean)
 				{
-					s.OutStream.Write((Boolean)o);
+					s.LamnState.OutStream.Write((Boolean)o);
 				}
 				else if (o is Table)
 				{
-					s.OutStream.Write(((Table)o).ToString());
+					s.LamnState.OutStream.Write(((Table)o).ToString());
 				}
 				else
 				{
-					s.OutStream.Write("[Unknown]");
+					s.LamnState.OutStream.Write("[Unknown]");
 				}
-				s.OutStream.Write("\t");
+				s.LamnState.OutStream.Write("\t");
 			}
 
-			s.OutStream.Write("\n");
+			s.LamnState.OutStream.Write("\n");
 
 			return new VarArgs();
 		}
 
-		static VarArgs LoadString(VarArgs input, State s)
+		static VarArgs LoadString(VarArgs input, LamnEngine s)
 		{
-			return new VarArgs();
+			VarArgs retArgs = new VarArgs();
+			retArgs.PushArg(s.CompileString((String)input.PopArg()));
+			return retArgs;
+		}
+
+		static void DoString(VarArgs input, LamnEngine s)
+		{
+			VarArgs retArgs = new VarArgs();
+			Closure closure = s.CompileString((String)input.PopArg());
+			s.LamnState.CurrentThread.PushStack(closure);
+			s.LamnState.DoCALL(OpCodes.MakeCALL(0));
+		}
+		#endregion
+
+		#region String functions
+		private static Table GetStringTable()
+		{
+			Table stringTable = new Table();
+			stringTable.RawPut("len", new State.NativeFuncDelegate(StrLen));
+
+			return stringTable;
+		}
+
+		private static VarArgs StrLen(VarArgs args, LamnEngine s)
+		{
+			String str = (String)args.PopArg();
+
+			VarArgs returnArgs = new VarArgs();
+			returnArgs.PushArg((double)str.Length);
+			return returnArgs;
 		}
 		#endregion
 
@@ -148,7 +179,7 @@ namespace Lamn.VirtualMachine
 			return coroutineTable;
 		}
 
-		private static VarArgs CoroutineCreate(VarArgs args, State s)
+		private static VarArgs CoroutineCreate(VarArgs args, LamnEngine s)
 		{
 			Thread t = new Thread((Closure)args.PopArg());
 			t.State.PushStack(new YieldPoint());
@@ -160,15 +191,15 @@ namespace Lamn.VirtualMachine
 			return returnArgs;
 		}
 
-		private static void CoroutineResume(VarArgs args, State s)
+		private static void CoroutineResume(VarArgs args, LamnEngine s)
 		{
 			Thread t = (Thread)args.PopArg();
-			s.ResumeThread(t, args);
+			s.LamnState.ResumeThread(t, args);
 		}
 
-		private static void CoroutineYield(VarArgs args, State s)
+		private static void CoroutineYield(VarArgs args, LamnEngine s)
 		{
-			s.YieldThread(args);
+			s.LamnState.YieldThread(args);
 		}
 		#endregion
 	}

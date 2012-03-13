@@ -6,10 +6,10 @@ namespace Lamn.VirtualMachine
 {
 	public class State
 	{
-		public delegate VarArgs NativeFuncDelegate(VarArgs input, State state);
-		public delegate void NativeCoreFuncDelegate(VarArgs intpu, State state);
+		public delegate VarArgs NativeFuncDelegate(VarArgs input, LamnEngine engine);
+		public delegate void NativeCoreFuncDelegate(VarArgs input, LamnEngine engine);
 
-		private Dictionary<String, Function> FunctionMap { get; set; }
+		public LamnEngine Engine { get; private set; }
 
 		public ThreadState CurrentThread { get { return ThreadStack.Peek(); } }
 		public InstructionPointer CurrentIP { 
@@ -29,20 +29,14 @@ namespace Lamn.VirtualMachine
 
 		private const int stackSize = 512;
 
-		//private int baseIndex = 0;
 
-		public State()
+		public State(LamnEngine engine)
 		{
-			FunctionMap = new Dictionary<String, Function>();
+			Engine = engine;
 			GlobalTable = new Dictionary<Object, Object>();
 			ThreadStack = new Stack<ThreadState>();
 			ThreadStack.Push(new ThreadState(stackSize));
 			OutStream = new System.IO.StringWriter();
-		}
-
-		public void RegisterFunction(Function f)
-		{
-			FunctionMap.Add(f.Id, f);
 		}
 
 		public void Run()
@@ -61,6 +55,9 @@ namespace Lamn.VirtualMachine
 							break;
 						case OpCodes.ADD:
 							DoADD(currentInstruction);
+							break;
+						case OpCodes.NEG:
+							DoNEG(currentInstruction);
 							break;
 						case OpCodes.RET:
 							DoRET(currentInstruction);
@@ -118,6 +115,9 @@ namespace Lamn.VirtualMachine
 							break;
 						case OpCodes.OR:
 							DoOR(currentInstruction);
+							break;
+						case OpCodes.CONCAT:
+							DoCONCAT(currentInstruction);
 							break;
 						case OpCodes.LESSEQ:
 							DoLESSEQ(currentInstruction);
@@ -243,6 +243,13 @@ namespace Lamn.VirtualMachine
 			}
 		}
 
+		private void DoNEG(UInt32 instruction)
+		{
+			Double op1 = (double)CurrentThread.PopStack();
+			CurrentThread.PushStack(- op1);
+			CurrentIP.InstructionIndex++;
+		}
+
 		private void DoRET(UInt32 instruction)
 		{
 			int oldBaseIndex = (int)CurrentThread.GetStackAtIndex(CurrentThread.BasePosition);
@@ -339,7 +346,7 @@ namespace Lamn.VirtualMachine
 			else if (o is NativeFuncDelegate)
 			{
 				NativeFuncDelegate nativeFunc = (NativeFuncDelegate)o;
-				VarArgs returnArgs = nativeFunc(args, this);
+				VarArgs returnArgs = nativeFunc(args, Engine);
 				CurrentThread.PushStack(returnArgs);
 
 				CurrentIP.InstructionIndex++;
@@ -347,7 +354,7 @@ namespace Lamn.VirtualMachine
 			else if (o is NativeCoreFuncDelegate)
 			{
 				NativeCoreFuncDelegate nativeFunc = (NativeCoreFuncDelegate)o;
-				nativeFunc(args, this);
+				nativeFunc(args, Engine);
 			}
 			else
 			{
@@ -580,6 +587,15 @@ namespace Lamn.VirtualMachine
 			{
 				CurrentThread.PushStack(false);
 			}
+			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoCONCAT(UInt32 instruction)
+		{
+			String op1 = (String)CurrentThread.PopStack();
+			String op2 = (String)CurrentThread.PopStack();
+
+			CurrentThread.PushStack(op2 + op1);
 			CurrentIP.InstructionIndex++;
 		}
 

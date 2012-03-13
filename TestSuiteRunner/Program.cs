@@ -40,7 +40,7 @@ namespace TestSuiteRunner
 		static List<String> getTestFiles()
 		{
 			List<String> tests = new List<String>();
-			tests.AddRange(Directory.GetFiles("../../../TestFiles/", "*.lua", SearchOption.AllDirectories));
+			tests.AddRange(Directory.GetFiles("../../../TestFiles", "*.lua", SearchOption.AllDirectories));
 			return tests;
 		}
 	}

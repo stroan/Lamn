@@ -91,14 +91,22 @@ namespace Lamn.Compiler
 
 			private static Lexeme AcceptQuoteStringLexeme(String value, Position pos)
 			{
-				return new Lexeme(Regex.Unescape(value.Substring(1,value.Length - 2)), Lexeme.Type.STRING, pos);
+				return new Lexeme(Unescaper.unescapeString(value.Substring(1,value.Length - 2)), Lexeme.Type.STRING, pos);
 			}
 
 			private static Lexeme AcceptLongStringLexeme(String value, Position pos)
 			{
-				int secondOpenBraceIndex = value.IndexOf('[', 1);
+				int startIndex = value.IndexOf('[', 1) + 1;
+				int length = value.Length - (startIndex * 2);
 
-				return new Lexeme(value.Substring(secondOpenBraceIndex, value.Length - (secondOpenBraceIndex * 2)), Lexeme.Type.STRING, pos);
+				// Discard leading new lines.
+				if (value[startIndex] == '\n')
+				{
+					startIndex++;
+					length--;
+				}
+
+				return new Lexeme(value.Substring(startIndex, length), Lexeme.Type.STRING, pos);
 			}
 			#endregion
 
@@ -115,6 +123,19 @@ namespace Lamn.Compiler
 			{
 				return new Lexeme(value, Double.Parse(value, System.Globalization.NumberStyles.Float), pos);
 			}
+			#endregion
+
+			#region Identifier producer
+
+			public static Rule.Producer IdentifierProducer { get { return new Rule.Producer(AcceptIdentifier); } }
+
+			private static Lexeme AcceptIdentifier(String value, Position pos)
+			{
+				Regex keywordRegex = new Regex("^(and|break|do|else|elseif|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)$");
+				Match keywordMatch = keywordRegex.Match(value);
+				return new Lexeme(value, keywordMatch.Success ? Lexeme.Type.KEYWORD : Lexeme.Type.NAME, pos);
+			}
+
 			#endregion
 		}
 
@@ -168,20 +189,18 @@ namespace Lamn.Compiler
 		}
 
 		Rule[] rules = { new Rule("\\s+",                                          Lexeme.Type.WHITESPACE),
-		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),    // Multiline comment
+		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*?\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),    // Multiline comment
 		                 new Rule("--.*",                                          Lexeme.Type.COMMENT),    // Short comment
-		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*\\]\\k<depth>\\]",    Rule.LongStringProducer),    // Multline string
+		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*?\\]\\k<depth>\\]",    Rule.LongStringProducer),    // Multline string
 		                 new Rule("\"([^\\n\"\\\\]|\\\\(.|\\n))*\"",               Rule.QuoteStringProducer),    // String with "s
 		                 new Rule("'([^\\n'\\\\]|\\\\(.|\\n))*'",                  Rule.QuoteStringProducer),    // String with 's
-						 new Rule("elseif",                                        Lexeme.Type.KEYWORD),
-		                 new Rule("(and|break|do|else|end|false|for|function|if|in|local|nil|not|or|repeat|return|then|true|until|while)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.\\.)",                                   Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.)",                                      Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.)",                                         Lexeme.Type.KEYWORD),
 		                 new Rule("0x[0-9a-fA-F]+",                                Rule.HexNumberProducer),     // Hex number
 		                 new Rule("\\d+(\\.\\d+)?([eE](-)?\\d+(\\.\\d+)?)?",       Rule.DecimalNumberProducer), // Decimal number
-		                 new Rule("[_A-Za-z][_A-Za-z0-9]*",                        Lexeme.Type.NAME) };
+		                 new Rule("[_A-Za-z][_A-Za-z0-9]*",                        Rule.IdentifierProducer) };
 
 		public List<Lexeme> lex(String input)
 		{

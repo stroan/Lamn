@@ -52,6 +52,7 @@
     <Compile Include="Compiler\LeftExpressionCompiler.cs" />
     <Compile Include="Compiler\Lexer.cs" />
     <Compile Include="Compiler\Parser.cs" />
+    <Compile Include="Compiler\Unescaper.cs" />
     <Compile Include="LamnEngine.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VirtualMachine\Closure.cs" />

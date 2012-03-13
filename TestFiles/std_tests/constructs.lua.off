@@ -1,6 +1,14 @@
-print "testando sintaxe"
+;;print "testing syntax";;
 
--- testando prioridades
+local debug = require "debug"
+
+-- testing semicollons
+do ;;; end
+; do ; a = 3; assert(a == 3) end;
+;
+
+
+-- testing priorities
 
 assert(2^3^2 == 2^(3^2));
 assert(2^3*4 == (2^3)*4);
@@ -13,6 +21,10 @@ assert(not(2+1 > 3*1) and "a".."b" > "a");
 
 assert(not ((true or false) and nil))
 assert(      true or false  and nil)
+
+-- old bug
+assert((((1 or false) and true) or false) == true)
+assert((((nil and true) or false) and true) == false)
 
 local a,b = 1,nil;
 assert(-(1 or 2) == -1 and (1 and 2)+(-1.25 or -4) == 0.75);
@@ -27,13 +39,9 @@ assert((x>y) and x or y == 2);
 assert(1234567890 == tonumber('1234567890') and 1234567890+1 == 1234567891)
 
 
--- loops bobos
+-- silly loops
 repeat until 1; repeat until true;
 while false do end; while nil do end;
-
--- old constructor-syntax compatibility test
-x = {}; x={;}; x={x=1;}; x={;x=1}; x={1}; x={1;}; x={;1}; x={1;x=1}; x={x=1;1}
-x={x=1,;}; x={;x=1,}; x={1,}; x={1,;}; x={;1,}; x={1,;x=1,}; x={x=1,;1,}
 
 do  -- test old bug (first name could not be an `upvalue')
  local a; function f(x) x={a=1}; x={x=1}; x={G=1} end
@@ -44,8 +52,9 @@ function f (i)
   if i > 0 then return i, f(i-1); end;
 end
 
-x = {f(3), f(5), f(10),;};
+x = {f(3), f(5), f(10);};
 assert(x[1] == 3 and x[2] == 5 and x[3] == 10 and x[4] == 9 and x[12] == 1);
+assert(x[nil] == nil)
 x = {f'alo', f'xixi', nil};
 assert(x[1] == 'alo' and x[2] == 'xixi' and x[3] == nil);
 x = {f'alo'..'xixi'};
@@ -81,7 +90,7 @@ function f(b)
     if b==1 then local b=1; x=10; break
     elseif b==2 then x=20; break;
     elseif b==3 then x=30;
-    else local a,b,c,d=sin(1); x=x+1;
+    else local a,b,c,d=math.sin(1); x=x+1;
     end
   until x>=12;
   return x;
@@ -137,9 +146,9 @@ end
 local a,b = 3 and f();
 assert(a==1 and b==nil)
 
-function g() %f(); return; end;
+function g() f(); return; end;
 assert(g() == nil)
-function g() return nil or %f() end
+function g() return nil or f() end
 a,b = g()
 assert(a==1 and b==nil)
 
@@ -152,8 +161,8 @@ return function ( a , b , c , d , e )
   return x
 end , { a = 1 , b = 2 >= 1 , } or { 1 };
 ]]
-f = gsub(f, "%s+", "\n");   -- force a SETLINE between opcodes
-f,a = loadstring(f)();
+f = string.gsub(f, "%s+", "\n");   -- force a SETLINE between opcodes
+f,a = load(f)();
 assert(a.a == 1 and a.b)
 
 function g (a,b,c,d,e)
@@ -189,7 +198,7 @@ do
 end
 
 function F(a)
-  assert(getinfo(1, "n").name == 'F')
+  assert(debug.getinfo(1, "n").name == 'F')
   return a,2,3
 end
 
@@ -205,7 +214,7 @@ function ID(x) return x end
 
 function f(t, i)
   local b = t.n
-  local res = mod(floor(i/c), b)+1
+  local res = math.fmod(math.floor(i/c), b)+1
   c = c*b
   return t[res]
 end
@@ -221,9 +230,9 @@ repeat
   c = 1
   local s = f(neg, i)..'ID('..f(neg, i)..f(arg, i)..f(op, i)..
             f(neg, i)..'ID('..f(arg, i)..f(op, i)..f(neg, i)..f(arg, i)..'))'
-  local s1 = gsub(s, 'ID', '')
+  local s1 = string.gsub(s, 'ID', '')
   K,X,NX,WX1,WX2 = nil
-  s = format([[
+  s = string.format([[
       local a = %s
       local b = not %s
       K = b
@@ -232,11 +241,70 @@ repeat
       if %s then NX = b  else NX = a end
       while %s do WX1 = a; break end
       while %s do WX2 = a; break end
-  ]], s1, s, s1, s, s1, s)
-  assert(dostring(s))
+      repeat if (%s) then break end; assert(b)  until not(%s)
+  ]], s1, s, s1, s, s1, s, s1, s, s)
+  assert(load(s))()
   assert(X and not NX and not WX1 == K and not WX2 == K)
-  if mod(i,4000) == 0 then print('+') end
+  if math.fmod(i,4000) == 0 then print('+') end
   i = i+1
 until i==c
+
+print '+'
+
+------------------------------------------------------------------
+print 'testing short-circuit optimizations'
+
+_ENV.GLOB1 = 1
+_ENV.GLOB2 = 2
+
+local basiccases = {
+  {"nil", nil},
+  {"false", false},
+  {"true", true},
+  {"10", 10},
+  {"(_ENV.GLOB1 < _ENV.GLOB2)", true},
+  {"(_ENV.GLOB2 < _ENV.GLOB1)", false},
+}
+
+
+local binops = {
+  {" and ", function (a,b) if not a then return a else return b end end},
+  {" or ", function (a,b) if a then return a else return b end end},
+}
+
+local mem = {basiccases}    -- for memoization
+
+local function allcases (n)
+  if mem[n] then return mem[n] end
+  local res = {}
+  -- include all smaller cases
+  for _, v in ipairs(allcases(n - 1)) do
+    res[#res + 1] = v
+  end
+  for i = 1, n - 1 do
+    for _, v1 in ipairs(allcases(i)) do
+      for _, v2 in ipairs(allcases(n - i)) do
+        for _, op in ipairs(binops) do
+            res[#res + 1] = {
+              "(" .. v1[1] .. op[1] .. v2[1] .. ")",
+              op[2](v1[2], v2[2])
+            }
+        end
+      end
+    end
+    print('+')
+  end
+  mem[n] = res   -- memoize
+  return res
+end
+
+-- do not do too many combinations for soft tests
+local level = _soft and 3 or 4
+
+for _, v in pairs(allcases(level)) do
+  local res = load("return " .. v[1])()
+  assert(res == v[2])
+end
+------------------------------------------------------------------
 
 print'OK'
