@@ -48,7 +48,7 @@ namespace Lamn.Compiler
 							retValue += "\v";
 							break;
 						case 'x':
-							if (i < s.Length - 2 && isHexChar(s[i]) && isHexChar(s[i + 1]))
+							if (i < s.Length - 1 && isHexChar(s[i]) && isHexChar(s[i + 1]))
 							{
 								retValue += (char)UInt16.Parse(s[i].ToString() + s[i + 1].ToString(), System.Globalization.NumberStyles.HexNumber);
 								i += 2;
@@ -56,6 +56,12 @@ namespace Lamn.Compiler
 							else
 							{
 								retValue += nc;
+							}
+							break;
+						case 'z':
+							while (i < s.Length && isWhitespace(s[i]))
+							{
+								i++;
 							}
 							break;
 						default:
@@ -92,6 +98,11 @@ namespace Lamn.Compiler
 		private static Boolean isDecimalDigit(char c)
 		{
 			return (c >= '0' && c <= '9');
+		}
+
+		private static Boolean isWhitespace(char c)
+		{
+			return c == '\n' || c == '\t' || c == ' ' || c == '\f' || c == '\v';
 		}
 	}
 }

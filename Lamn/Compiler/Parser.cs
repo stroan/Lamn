@@ -602,7 +602,7 @@ namespace Lamn.Compiler
 				String unaryOp = Stream.Head.Value;
 				Stream.MoveNext();
 
-				expr = new AST.UnOpExpression(unaryOp, ParseExpression());
+				expr = new AST.UnOpExpression(unaryOp, ParseSubExpression(8));
 			}
 			else /* simpleexp */
 			{

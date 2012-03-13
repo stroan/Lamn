@@ -97,6 +97,11 @@ namespace Lamn.Compiler
 			private static Lexeme AcceptLongStringLexeme(String value, Position pos)
 			{
 				int startIndex = value.IndexOf('[', 1) + 1;
+
+				value = value.Replace("\r\n", "\n");
+				value = value.Replace("\n\r", "\n");
+				value = value.Replace("\r", "\n");
+
 				int length = value.Length - (startIndex * 2);
 
 				// Discard leading new lines.
@@ -193,7 +198,7 @@ namespace Lamn.Compiler
 		                 new Rule("--.*",                                          Lexeme.Type.COMMENT),    // Short comment
 		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*?\\]\\k<depth>\\]",    Rule.LongStringProducer),    // Multline string
 		                 new Rule("\"([^\\n\"\\\\]|\\\\(.|\\n))*\"",               Rule.QuoteStringProducer),    // String with "s
-		                 new Rule("'([^\\n'\\\\]|\\\\(.|\\n))*'",                  Rule.QuoteStringProducer),    // String with 's
+		                 new Rule("'([^\\n'\\\\]|\\\\(.|\\n)|\\n)*'",                  Rule.QuoteStringProducer),    // String with 's
 		                 new Rule("(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.\\.)",                                   Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.)",                                      Lexeme.Type.KEYWORD),

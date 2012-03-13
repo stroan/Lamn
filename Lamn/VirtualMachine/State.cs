@@ -592,10 +592,28 @@ namespace Lamn.VirtualMachine
 
 		private void DoCONCAT(UInt32 instruction)
 		{
-			String op1 = (String)CurrentThread.PopStack();
-			String op2 = (String)CurrentThread.PopStack();
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
 
-			CurrentThread.PushStack(op2 + op1);
+			if (op1 is double)
+			{
+				op1 = op1.ToString();
+			}
+
+			if (op2 is double)
+			{
+				op2 = op2.ToString();
+			}
+
+			if (op1 is String && op2 is String)
+			{
+				CurrentThread.PushStack((String)op2 + (String)op1);
+			}
+			else
+			{
+				throw new NotImplementedException();
+			}
+
 			CurrentIP.InstructionIndex++;
 		}
 
