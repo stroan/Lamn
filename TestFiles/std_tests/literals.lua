@@ -44,3 +44,8 @@ lexstring("[[\nalo\ralo\n\n]]", "alo\nalo\n\n", 5)
 lexstring("[[\nalo\ralo\r\n]]", "alo\nalo\n", 4)
 lexstring("[[\ralo\n\ralo\r\n]]", "alo\nalo\n", 4)
 lexstring("[[alo]\n]alo]]", "alo]\n]alo", 2)
+
+assert("abc\z
+        def\z
+        ghi\z
+       " == 'abcdefghi')

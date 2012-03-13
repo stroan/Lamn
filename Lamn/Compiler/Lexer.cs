@@ -194,11 +194,11 @@ namespace Lamn.Compiler
 		}
 
 		Rule[] rules = { new Rule("\\s+",                                          Lexeme.Type.WHITESPACE),
-		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*?\\]\\k<depth>\\]",  Lexeme.Type.COMMENT),    // Multiline comment
+		                 new Rule("--\\[(?<depth>=*)\\[(.|\\n)*?\\]\\k<depth>\\]", Lexeme.Type.COMMENT),    // Multiline comment
 		                 new Rule("--.*",                                          Lexeme.Type.COMMENT),    // Short comment
-		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*?\\]\\k<depth>\\]",    Rule.LongStringProducer),    // Multline string
-		                 new Rule("\"([^\\n\"\\\\]|\\\\(.|\\n))*\"",               Rule.QuoteStringProducer),    // String with "s
-		                 new Rule("'([^\\n'\\\\]|\\\\(.|\\n)|\\n)*'",                  Rule.QuoteStringProducer),    // String with 's
+		                 new Rule("\\[(?<depth>=*)\\[(.|\\n)*?\\]\\k<depth>\\]",   Rule.LongStringProducer),    // Multline string
+		                 new Rule("\"([^\\n\"\\\\]|\\\\(.|\\n)|\\n)*\"",           Rule.QuoteStringProducer),    // String with "s
+		                 new Rule("'([^\\n'\\\\]|\\\\(.|\\n)|\\n)*'",              Rule.QuoteStringProducer),    // String with 's
 		                 new Rule("(\\+|-|\\*|\\/|%|\\^|\\#|==|~=|<=|>=|<|>|=|\\(|\\)|\\{|\\}|\\[|\\]|;|:|,)", Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.\\.)",                                   Lexeme.Type.KEYWORD),
 		                 new Rule("(\\.\\.)",                                      Lexeme.Type.KEYWORD),
