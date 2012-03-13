@@ -1,5 +1,4 @@
-print('testing 
-scanner')
+print('testing scanner')
 
 -- LAMN DISABLE DUE TO NO DEBUG LIBRARY
 --debug = require "debug"
