@@ -121,6 +121,7 @@ namespace Lamn.Compiler
 
 				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
 				State.labels.Add(afterLabel, State.bytecodes.Count);
+				State.stackPosition++;
 			}
 			else if (expression.Op.Equals("and"))
 			{
@@ -137,8 +138,8 @@ namespace Lamn.Compiler
 				State.labels.Add(nextLabel, State.bytecodes.Count);
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakePOPSTACK(1)); State.stackPosition--;
 				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
-
 				State.labels.Add(afterLabel, State.bytecodes.Count);
+				State.stackPosition++;
 			}
 			else if (expression.Op.Equals(".."))
 			{
@@ -169,6 +170,32 @@ namespace Lamn.Compiler
 				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
 				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
 				State.bytecodes.Add(VirtualMachine.OpCodes.MINUS);
+			}
+			else if (expression.Op.Equals("<"))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.LESS);
+			}
+			else if (expression.Op.Equals("<="))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.LESSEQ);
+			}
+			else if (expression.Op.Equals(">="))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.LESS);
+				State.bytecodes.Add(VirtualMachine.OpCodes.NOT);
+			}
+			else if (expression.Op.Equals(">"))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.LESSEQ);
+				State.bytecodes.Add(VirtualMachine.OpCodes.NOT);
 			}
 			else
 			{

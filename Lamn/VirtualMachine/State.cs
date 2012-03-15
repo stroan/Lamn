@@ -695,17 +695,35 @@ namespace Lamn.VirtualMachine
 
 		private void DoLESSEQ(UInt32 instruction)
 		{
-			Double op1 = (Double)CurrentThread.PopStack();
-			Double op2 = (Double)CurrentThread.PopStack();
-			CurrentThread.PushStack(op2 <= op1);
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
+
+			if (op1 is Double && op2 is Double)
+			{
+				CurrentThread.PushStack((Double)op2 <= (Double)op1);
+			}
+			else if (op1 is String && op2 is String)
+			{
+				CurrentThread.PushStack(((String)op2).CompareTo((String)op1) <= 0);
+			}
+
 			CurrentIP.InstructionIndex++;
 		}
 
 		private void DoLESS(UInt32 instruction)
 		{
-			Double op1 = (Double)CurrentThread.PopStack();
-			Double op2 = (Double)CurrentThread.PopStack();
-			CurrentThread.PushStack(op2 < op1);
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
+
+			if (op1 is Double && op2 is Double)
+			{
+				CurrentThread.PushStack((Double)op2 < (Double)op1);
+			}
+			else if (op1 is String && op2 is String)
+			{
+				CurrentThread.PushStack(((String)op2).CompareTo((String)op1) < 0);
+			}
+
 			CurrentIP.InstructionIndex++;
 		}
 

@@ -136,7 +136,7 @@ namespace Lamn.Compiler
 			{"==", 3},{"~=", 3},
 			{">", 3},{"<", 3},{">=", 3},{"<=", 3},
 			{"and", 2},
-			{"or", 2}
+			{"or", 1}
 		};
 
 		private static Dictionary<String, int> opRightPriorities = new Dictionary<String, int>() {
@@ -145,7 +145,7 @@ namespace Lamn.Compiler
 			{"==", 3},{"~=", 3},
 			{">", 3},{"<", 3},{">=", 3},{"<=", 3},
 			{"and", 2},
-			{"or", 2}
+			{"or", 1}
 		};
 		#endregion
 
