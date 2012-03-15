@@ -7,47 +7,51 @@ namespace Lamn.VirtualMachine
 {
 	class OpCodes
 	{
-		public const UInt32 LOADK     = 0x01000000;
-		public const UInt32 ADD       = 0x02000000;
-		public const UInt32 NEG       = 0x03000000;
+		// Stack manipulation
+		public const UInt32 LOADK     = 0x00000000;
+		public const UInt32 GETSTACK  = 0x01000000;
+		public const UInt32 PUTSTACK  = 0x02000000;
+		public const UInt32 POPSTACK  = 0x03000000;
+		public const UInt32 GETGLOBAL = 0x04000000;
+		public const UInt32 PUTGLOBAL = 0x05000000;
 
-		public const UInt32 RET       = 0x04000000;
-		public const UInt32 CALL      = 0x05000000;
+		// Operators
+		public const UInt32 ADD       = 0x10000000;
+		public const UInt32 MINUS     = 0x11000000;
+		public const UInt32 NEG       = 0x12000000;
+		public const UInt32 MUL       = 0x13000000;
+		public const UInt32 DIV       = 0x14000000;
+		public const UInt32 POW       = 0x15000000;
+		public const UInt32 CONCAT    = 0x16000000;
 
-		public const UInt32 POPVARGS  = 0x06000000;
+		// Calls and varargs
+		public const UInt32 RET       = 0x20000000;
+		public const UInt32 CALL      = 0x21000000;
+		public const UInt32 JMP       = 0x22000000;
+		public const UInt32 JMPTRUE   = 0x23000000;
+		public const UInt32 POPVARGS  = 0x24000000;
 
-		public const UInt32 CLOSEVARS = 0x07000000;
-		public const UInt32 POPCLOSED = 0x08000000;
-		public const UInt32 CLOSURE   = 0x09000000;
-		public const UInt32 GETUPVAL  = 0x0A000000;
-		public const UInt32 PUTUPVAL  = 0x0B000000;
+		// Closures
+		public const UInt32 CLOSEVARS = 0x30000000;
+		public const UInt32 POPCLOSED = 0x31000000;
+		public const UInt32 CLOSURE   = 0x32000000;
+		public const UInt32 GETUPVAL  = 0x33000000;
+		public const UInt32 PUTUPVAL  = 0x34000000;
 
-		public const UInt32 GETGLOBAL = 0x0C000000;
-		public const UInt32 PUTGLOBAL = 0x0D000000;
+		// Comparisons
+		public const UInt32 EQ        = 0x40000000;
+		public const UInt32 NOT       = 0x41000000;
+		public const UInt32 AND       = 0x42000000;
+		public const UInt32 OR        = 0x43000000;
+		public const UInt32 LESSEQ    = 0x44000000;
+		public const UInt32 LESS      = 0x45000000;
 
-		public const UInt32 GETSTACK  = 0x0E000000;
-		public const UInt32 PUTSTACK  = 0x0F000000;
+		// Tables
+		public const UInt32 NEWTABLE  = 0x50000000;
+		public const UInt32 PUTTABLE  = 0x51000000;
+		public const UInt32 GETTABLE  = 0x52000000;
 
-		public const UInt32 JMP       = 0x10000000;
-		public const UInt32 JMPTRUE   = 0x11000000;
-
-		public const UInt32 POPSTACK  = 0x12000000;
-
-		public const UInt32 EQ        = 0x13000000;
-		public const UInt32 NOT       = 0x14000000;
-
-		public const UInt32 AND       = 0x15000000;
-		public const UInt32 OR        = 0x16000000;
-
-		public const UInt32 CONCAT    = 0x17000000;
-
-		public const UInt32 LESSEQ    = 0x18000000;
-		public const UInt32 LESS      = 0x19000000;
-
-		public const UInt32 NEWTABLE  = 0x1A000000;
-		public const UInt32 PUTTABLE  = 0x1B000000;
-		public const UInt32 GETTABLE  = 0x1C000000;
-
+		// Masks
 		public const UInt32 OPCODE_MASK = 0xFF000000;
 		public const UInt32 OP1_MASK    = 0x00FFF000;
 		public const UInt32 OP2_MASK    = 0x00000FFF;

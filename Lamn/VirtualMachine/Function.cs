@@ -43,8 +43,20 @@ namespace Lamn.VirtualMachine
 					case OpCodes.ADD:
 						name = "ADD";
 						break;
+					case OpCodes.MINUS:
+						name = "MINUS";
+						break;
+					case OpCodes.MUL:
+						name = "MUL";
+						break;
+					case OpCodes.DIV:
+						name = "MUL";
+						break;
 					case OpCodes.NEG:
 						name = "NEG";
+						break;
+					case OpCodes.POW:
+						name = "POW";
 						break;
 					case OpCodes.RET:
 						name = "RET";

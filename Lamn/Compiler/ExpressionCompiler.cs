@@ -146,6 +146,30 @@ namespace Lamn.Compiler
 				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
 				State.bytecodes.Add(VirtualMachine.OpCodes.CONCAT);
 			}
+			else if (expression.Op.Equals("^"))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.POW);
+			}
+			else if (expression.Op.Equals("*"))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.MUL);
+			}
+			else if (expression.Op.Equals("/"))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.DIV);
+			}
+			else if (expression.Op.Equals("-"))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.MINUS);
+			}
 			else
 			{
 				throw new NotImplementedException();

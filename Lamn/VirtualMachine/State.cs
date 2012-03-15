@@ -56,8 +56,20 @@ namespace Lamn.VirtualMachine
 						case OpCodes.ADD:
 							DoADD(currentInstruction);
 							break;
+						case OpCodes.MINUS:
+							DoMINUS(currentInstruction);
+							break;
+						case OpCodes.MUL:
+							DoMUL(currentInstruction);
+							break;
+						case OpCodes.DIV:
+							DoDIV(currentInstruction);
+							break;
 						case OpCodes.NEG:
 							DoNEG(currentInstruction);
+							break;
+						case OpCodes.POW:
+							DoPOW(currentInstruction);
 							break;
 						case OpCodes.RET:
 							DoRET(currentInstruction);
@@ -243,11 +255,75 @@ namespace Lamn.VirtualMachine
 			}
 		}
 
+		private void DoMINUS(UInt32 instruction)
+		{
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
+
+			if (op1 is Double && op2 is Double)
+			{
+				CurrentThread.PushStack((Double)op2 - (Double)op1);
+				CurrentIP.InstructionIndex++;
+			}
+			else
+			{
+				throw new VMException();
+			}
+		}
+
 		private void DoNEG(UInt32 instruction)
 		{
 			Double op1 = (double)CurrentThread.PopStack();
 			CurrentThread.PushStack(- op1);
 			CurrentIP.InstructionIndex++;
+		}
+
+		private void DoMUL(UInt32 instruction)
+		{
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
+
+			if (op1 is Double && op2 is Double)
+			{
+				CurrentThread.PushStack((Double)op2 * (Double)op1);
+				CurrentIP.InstructionIndex++;
+			}
+			else
+			{
+				throw new VMException();
+			}
+		}
+
+		private void DoDIV(UInt32 instruction)
+		{
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
+
+			if (op1 is Double && op2 is Double)
+			{
+				CurrentThread.PushStack((Double)op2 / (Double)op1);
+				CurrentIP.InstructionIndex++;
+			}
+			else
+			{
+				throw new VMException();
+			}
+		}
+
+		private void DoPOW(UInt32 instruction)
+		{
+			Object op1 = CurrentThread.PopStack();
+			Object op2 = CurrentThread.PopStack();
+
+			if (op1 is Double && op2 is Double)
+			{
+				CurrentThread.PushStack(Math.Pow((Double)op2,(Double)op1));
+				CurrentIP.InstructionIndex++;
+			}
+			else
+			{
+				throw new VMException();
+			}
 		}
 
 		private void DoRET(UInt32 instruction)

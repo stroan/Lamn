@@ -167,9 +167,14 @@ namespace Lamn.Compiler
 
 			while (!IsChunkFollow())
 			{
-				statements.Add(ParseStatement());
-
-				if (Stream.IsKeyword(";")) Stream.MoveNext();
+				if (Stream.IsKeyword(";"))
+				{
+					Stream.MoveNext();
+				}
+				else
+				{
+					statements.Add(ParseStatement());
+				}
 			}
 
 			return new AST.Chunk(statements);
