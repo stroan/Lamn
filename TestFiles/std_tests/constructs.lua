@@ -35,3 +35,10 @@ x,y=1,2;
 assert((x>y) and x or y == 2);
 x,y=2,1;
 assert((x>y) and x or y == 2);
+
+assert(1234567890 == tonumber('1234567890') and 1234567890+1 == 1234567891)
+
+
+-- silly loops
+repeat until 1; repeat until true;
+while false do end; while nil do end;

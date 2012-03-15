@@ -64,6 +64,10 @@ namespace Lamn.VirtualMachine
 			{
 				returnArgs.PushArg(arg);
 			}
+			else if (arg is String)
+			{
+				returnArgs.PushArg(Double.Parse((String)arg));
+			}
 
 			return returnArgs;
 		}
