@@ -26,6 +26,11 @@ namespace Lamn.VirtualMachine
 
 		public Object MetaGet(Object key)
 		{
+			if (key == null)
+			{
+				return null;
+			}
+
 			if (hashPart.ContainsKey(key))
 			{
 				return hashPart[key];
@@ -43,7 +48,8 @@ namespace Lamn.VirtualMachine
 
 			foreach (KeyValuePair<Object, Object> hashEntry in hashPart)
 			{
-				retVal += hashEntry.Key.ToString() + ":" + hashEntry.Value.ToString() + ",";
+				Object value = hashEntry.Value;
+				retVal += hashEntry.Key.ToString() + ":" + (value == null ? "nil" : value.ToString()) + ",";
 			}
 
 			if (MetaTable != null)

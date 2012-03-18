@@ -68,6 +68,10 @@ namespace Lamn.VirtualMachine
 			{
 				returnArgs.PushArg("string");
 			}
+			else if (arg is Table)
+			{
+				returnArgs.PushArg("table");
+			}
 
 			return returnArgs;
 		}

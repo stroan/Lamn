@@ -54,3 +54,32 @@ end
 
 x = {f(3), f(5), f(10);};
 assert(x[1] == 3 and x[2] == 5 and x[3] == 10 and x[4] == 9 and x[12] == 1);
+assert(x[nil] == nil)
+x = {f'alo', f'xixi', nil};
+assert(x[1] == 'alo' and x[2] == 'xixi' and x[3] == nil);
+x = {f'alo'..'xixi'};
+assert(x[1] == 'aloxixi')
+x = {f{}}
+assert(x[2] == 'jojo' and type(x[1]) == 'table')
+
+
+local f = function (i)
+  if i < 10 then return 'a';
+  elseif i < 20 then return 'b';
+  elseif i < 30 then return 'c';
+  end;
+end
+
+assert(f(3) == 'a' and f(12) == 'b' and f(26) == 'c' and f(100) == nil)
+
+for i=1,1000 do break; end;
+n=100;
+i=3;
+t = {};
+a=nil
+while not a do
+  print(a, n, i)
+  a=0; for i=1,n do for i=i,1,-1 do a=a+1; t[i]=1; print("here", a, n, i); end; print("there", a, n, i);  end;
+end
+assert(a == n*(n+1)/2 and i==3);
+assert(t[1] and t[n] and not t[0] and not t[n+1])

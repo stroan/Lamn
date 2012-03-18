@@ -175,8 +175,7 @@ namespace Lamn.Compiler
 
 				if (exp3 == null)
 				{
-					exp3 = exp2;
-					exp2 = new AST.NumberExpression(1);
+					exp3 = new AST.NumberExpression(1);
 				}
 
 				CompilerState.SavedState save = State.SaveState();
@@ -185,14 +184,14 @@ namespace Lamn.Compiler
 				int valPosition = State.stackPosition;
 				exp1.Visit(new ExpressionCompiler(State, 1));
 
-				int stepPosition = State.stackPosition;
+				int maxPosition = State.stackPosition;
 				exp2.Visit(new ExpressionCompiler(State, 1));
 
-				int maxPosition = State.stackPosition;
+				int stepPosition = State.stackPosition;
 				exp3.Visit(new ExpressionCompiler(State, 1));
 
 				// Verify that the variables are all numbers
-				foreach (int position in new int[] { valPosition, stepPosition, maxPosition })
+				foreach (int position in new int[] { valPosition, maxPosition, stepPosition })
 				{
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETGLOBAL(State.AddConstant("tonumber"))); State.stackPosition++;
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - position)); State.stackPosition++;

@@ -653,11 +653,11 @@ namespace Lamn.VirtualMachine
 
 		private void DoOR(UInt32 instruction)
 		{
-			Object op1 = CurrentThread.PopStack();
 			Object op2 = CurrentThread.PopStack();
+			Object op1 = CurrentThread.PopStack();
 			if (IsValueTrue(op1) || IsValueTrue(op2))
 			{
-				CurrentThread.PushStack(op2);
+				CurrentThread.PushStack(IsValueTrue(op1) ? op1 : op2);
 			}
 			else
 			{
