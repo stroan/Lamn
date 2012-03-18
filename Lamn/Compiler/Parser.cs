@@ -560,6 +560,10 @@ namespace Lamn.Compiler
 
 				expressions = ParseExpressionList1();
 			}
+			else
+			{
+				expressions = new List<AST.Expression>();
+			}
 
 			return new AST.LocalAssignmentStatement(variableNames, expressions, pos);
 		}

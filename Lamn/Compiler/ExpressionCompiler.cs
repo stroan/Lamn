@@ -197,6 +197,13 @@ namespace Lamn.Compiler
 				State.bytecodes.Add(VirtualMachine.OpCodes.LESSEQ);
 				State.bytecodes.Add(VirtualMachine.OpCodes.NOT);
 			}
+			else if (expression.Op.Equals("~="))
+			{
+				expression.LeftExpr.Visit(new ExpressionCompiler(State, 1));
+				expression.RightExpr.Visit(new ExpressionCompiler(State, 1));
+				State.bytecodes.Add(VirtualMachine.OpCodes.EQ);
+				State.bytecodes.Add(VirtualMachine.OpCodes.NOT);
+			}
 			else
 			{
 				throw new NotImplementedException();
@@ -316,7 +323,7 @@ namespace Lamn.Compiler
 
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakeGETSTACK(State.stackPosition - tablePosition)); State.stackPosition++;
 					State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(listIndex++))); State.stackPosition++;
-					lField.Expr.Visit(this); // Stack position ++;
+					lField.Expr.Visit(new ExpressionCompiler(State, field == expression.Fields.Last() ? 0 : 1)); // Stack position ++;
 					State.bytecodes.Add(VirtualMachine.OpCodes.PUTTABLE); State.stackPosition -= 3;
 				}
 				else if (field is AST.ExprRecField)

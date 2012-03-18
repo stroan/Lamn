@@ -11,7 +11,8 @@ namespace Lamn.VirtualMachine
 		{
 			s.PutGlobal("getmetatable", new State.NativeFuncDelegate(GetMetaTable));
 			s.PutGlobal("setmetatable", new State.NativeFuncDelegate(SetMetaTable));
-			
+
+			s.PutGlobal("type", new State.NativeFuncDelegate(TypeString));
 			s.PutGlobal("tonumber", new State.NativeFuncDelegate(ToNumber));
 			
 			s.PutGlobal("print", new State.NativeFuncDelegate(Print));
@@ -21,7 +22,6 @@ namespace Lamn.VirtualMachine
 			s.PutGlobal("pcall", new State.NativeCoreFuncDelegate(PCall));
 
 			s.PutGlobal("load", new State.NativeFuncDelegate(LoadString));
-			s.PutGlobal("dostring", new State.NativeCoreFuncDelegate(DoString));
 
 			s.PutGlobal("coroutine", GetCoroutineTable());
 			s.PutGlobal("string", GetStringTable());
@@ -50,6 +50,23 @@ namespace Lamn.VirtualMachine
 			if (obj != null && obj is Table)
 			{
 				((Table)obj).MetaTable = (Table)metatable;
+			}
+
+			return returnArgs;
+		}
+
+		public static VarArgs TypeString(VarArgs args, LamnEngine s)
+		{
+			Object arg = args.PopArg();
+			VarArgs returnArgs = new VarArgs();
+
+			if (arg is Double)
+			{
+				returnArgs.PushArg("number");
+			}
+			else if (arg is String)
+			{
+				returnArgs.PushArg("string");
 			}
 
 			return returnArgs;
@@ -142,14 +159,6 @@ namespace Lamn.VirtualMachine
 			VarArgs retArgs = new VarArgs();
 			retArgs.PushArg(s.CompileString((String)input.PopArg()));
 			return retArgs;
-		}
-
-		static void DoString(VarArgs input, LamnEngine s)
-		{
-			VarArgs retArgs = new VarArgs();
-			Closure closure = s.CompileString((String)input.PopArg());
-			s.LamnState.CurrentThread.PushStack(closure);
-			s.LamnState.DoCALL(OpCodes.MakeCALL(0));
 		}
 		#endregion
 

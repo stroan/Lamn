@@ -42,3 +42,15 @@ assert(1234567890 == tonumber('1234567890') and 1234567890+1 == 1234567891)
 -- silly loops
 repeat until 1; repeat until true;
 while false do end; while nil do end;
+
+do  -- test old bug (first name could not be an `upvalue')
+ local a; function f(x) x={a=1}; x={x=1}; x={G=1} end
+end
+
+function f (i)
+  if type(i) ~= 'number' then return i,'jojo'; end;
+  if i > 0 then return i, f(i-1); end;
+end
+
+x = {f(3), f(5), f(10);};
+assert(x[1] == 3 and x[2] == 5 and x[3] == 10 and x[4] == 9 and x[12] == 1);
