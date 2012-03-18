@@ -78,8 +78,7 @@ i=3;
 t = {};
 a=nil
 while not a do
-  print(a, n, i)
-  a=0; for i=1,n do for i=i,1,-1 do a=a+1; t[i]=1; print("here", a, n, i); end; print("there", a, n, i);  end;
+  a=0; for i=1,n do for i=i,1,-1 do a=a+1; t[i]=1; end; end;
 end
 assert(a == n*(n+1)/2 and i==3);
 assert(t[1] and t[n] and not t[0] and not t[n+1])
