@@ -23,6 +23,7 @@ namespace Lamn.Compiler
 		public List<KeyValuePair<String, int>> jumps = new List<KeyValuePair<String, int>>();
 
 		public String currentBreakLabel;
+		public SavedState currentBreakState;
 
 		public void ResolveJumps()
 		{

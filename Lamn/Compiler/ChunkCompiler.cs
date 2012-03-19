@@ -145,12 +145,15 @@ namespace Lamn.Compiler
 			State.jumps.Add(new KeyValuePair<string, int>(afterLabel, State.bytecodes.Count - 1));
 
 			String oldBreakLabel = State.currentBreakLabel;
+			CompilerState.SavedState oldBreakState = State.currentBreakState;
 			State.currentBreakLabel = afterLabel;
+			State.currentBreakState = State.SaveState();
 
 			State.labels[startLabel] = State.bytecodes.Count;
 			ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, null, false);
 
 			State.currentBreakLabel = oldBreakLabel;
+			State.currentBreakState = oldBreakState;
 
 			State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
 			State.jumps.Add(new KeyValuePair<string, int>(condLabel, State.bytecodes.Count - 1));
@@ -250,7 +253,9 @@ namespace Lamn.Compiler
 				CompilerState.SavedState loopSave = State.SaveState();
 
 				String oldBreakLabel = State.currentBreakLabel;
+				CompilerState.SavedState oldBreakState = State.currentBreakState;
 				State.currentBreakLabel = afterLabel;
+				State.currentBreakState = State.SaveState();
 
 				State.labels.Add(bodyLabel, State.bytecodes.Count);
 
@@ -262,6 +267,7 @@ namespace Lamn.Compiler
 				ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, loopSave, false);
 
 				State.currentBreakLabel = oldBreakLabel;
+				State.currentBreakState = oldBreakState;
 
 				State.RestoreState(loopSave);
 
@@ -323,9 +329,13 @@ namespace Lamn.Compiler
 
 				State.labels[bodyLabel] = State.bytecodes.Count;
 				String oldBreakLabel = State.currentBreakLabel;
+				CompilerState.SavedState oldBreakState = State.currentBreakState;
+
 				State.currentBreakLabel = afterLabel;
+				State.currentBreakState = State.SaveState();
 				ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, loopSave, false);
 
+				State.currentBreakState = oldBreakState;
 				State.currentBreakLabel = oldBreakLabel;
 
 				State.RestoreState(loopSave);
@@ -398,12 +408,16 @@ namespace Lamn.Compiler
 			String startLabel = State.getNewLabel();
 
 			String oldBreakLabel = State.currentBreakLabel;
+			CompilerState.SavedState oldBreakState = State.currentBreakState;
+
 			State.currentBreakLabel = afterLabel;
+			State.currentBreakState = State.SaveState();
 
 			State.labels[startLabel] = State.bytecodes.Count;
 			ChunkCompiler chunk = new ChunkCompiler(statement.Block, State, null, false);
 
 			State.currentBreakLabel = oldBreakLabel;
+			State.currentBreakState = oldBreakState;
 
 			statement.Condition.Visit(new ExpressionCompiler(State, 1));
 			State.bytecodes.Add(VirtualMachine.OpCodes.NOT);
@@ -440,7 +454,7 @@ namespace Lamn.Compiler
 
 		public void Visit(AST.BreakStatement statement)
 		{
-			CleanupChunk();
+			State.RestoreState(State.currentBreakState);
 
 			State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
 			State.jumps.Add(new KeyValuePair<String, int>(State.currentBreakLabel, State.bytecodes.Count - 1));
@@ -495,7 +509,14 @@ namespace Lamn.Compiler
 			}
 			else
 			{
-				State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(State.AddConstant(statement.MainName))); State.stackPosition--;
+				if (State.stackVars.ContainsKey(statement.MainName))
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTSTACK(State.stackPosition - State.stackVars[statement.MainName])); State.stackPosition--;
+				}
+				else
+				{
+					State.bytecodes.Add(VirtualMachine.OpCodes.MakePUTGLOBAL(State.AddConstant(statement.MainName))); State.stackPosition--;
+				}
 			}
 		}
 		#endregion

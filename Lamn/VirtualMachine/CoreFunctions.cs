@@ -25,6 +25,7 @@ namespace Lamn.VirtualMachine
 
 			s.PutGlobal("coroutine", GetCoroutineTable());
 			s.PutGlobal("string", GetStringTable());
+			s.PutGlobal("math", GetMathTable());
 		}
 
 		#region Basic core functions
@@ -217,6 +218,26 @@ namespace Lamn.VirtualMachine
 		private static void CoroutineYield(VarArgs args, LamnEngine s)
 		{
 			s.LamnState.YieldThread(args);
+		}
+		#endregion
+
+		#region Math functions
+		private static Table GetMathTable()
+		{
+			Table mathTable = new Table();
+			mathTable.RawPut("sin", new State.NativeFuncDelegate(Sin));
+
+			return mathTable;
+		}
+
+		private static VarArgs Sin(VarArgs args, LamnEngine s)
+		{
+			args = ToNumber(args, s);
+			Double d = (Double)args.PopArg();
+
+			VarArgs returnArgs = new VarArgs();
+			returnArgs.PushArg(Math.Sin(d));
+			return returnArgs;
 		}
 		#endregion
 	}
