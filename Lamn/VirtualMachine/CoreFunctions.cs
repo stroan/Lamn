@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Lamn.VirtualMachine
 {
@@ -172,8 +173,17 @@ namespace Lamn.VirtualMachine
 		{
 			Table stringTable = new Table();
 			stringTable.RawPut("len", new State.NativeFuncDelegate(StrLen));
+			stringTable.RawPut("gsub", new State.NativeFuncDelegate(StrGSub));
 
 			return stringTable;
+		}
+
+		private static class RegexCompiler
+		{
+			public static Regex compile(String luaRegex)
+			{
+				return new Regex(luaRegex.Replace("%s", "\\s"));
+			}
 		}
 
 		private static VarArgs StrLen(VarArgs args, LamnEngine s)
@@ -182,6 +192,27 @@ namespace Lamn.VirtualMachine
 
 			VarArgs returnArgs = new VarArgs();
 			returnArgs.PushArg((double)str.Length);
+			return returnArgs;
+		}
+
+		private static VarArgs StrGSub(VarArgs args, LamnEngine s)
+		{
+			String str = (String)args.PopArg();
+			String pattern = (String)args.PopArg();
+			String repl = (String)args.PopArg();
+			Object n = args.PopArg();
+
+			int count = -1;
+			if (n != null)
+			{
+				count = (int)(Double)n;
+			}
+
+			Regex patternRegex = RegexCompiler.compile(pattern);
+			String retStr = patternRegex.Replace(str, repl, count);
+
+			VarArgs returnArgs = new VarArgs();
+			returnArgs.PushArg(retStr);
 			return returnArgs;
 		}
 		#endregion

@@ -379,19 +379,22 @@ namespace Lamn.Compiler
 					numResults = numVars - i;
 				}
 
-				for (int j = 0; j < numResults; j++)
-				{
-					rightStackPositions[i + j] = State.stackPosition + j;
-				}
-
+				int startPosition = State.stackPosition;
 				statement.Expressions[i].Visit(new ExpressionCompiler(State, numResults));
+				int endPosition = State.stackPosition;
+
+				for (int j = 0; j < endPosition - startPosition && i + j < numVars; j++)
+				{
+					rightStackPositions[i + j] = startPosition + j;
+				}
 			}
 
 			int nowStackPosition = State.stackPosition;
-			for (int i = 0; i < statement.Expressions.Count - (nowStackPosition - initialStackPosition); i++)
+			for (int i = 0; i < statement.Variables.Count - (nowStackPosition - initialStackPosition); i++)
 			{
 				rightStackPositions[(nowStackPosition - initialStackPosition) + i] = State.stackPosition;
 				State.bytecodes.Add(VirtualMachine.OpCodes.MakeLOADK(State.AddConstant(null)));
+				State.stackPosition++;
 			}
 
 			for (int i = 0; i < numVars; i++)

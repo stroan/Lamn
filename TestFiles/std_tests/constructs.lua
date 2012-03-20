@@ -118,3 +118,81 @@ assert(x.f == 5 and x.a == 25)
 a={y=1}
 x = {a.y}
 assert(x[1] == 1)
+
+function f(i)
+  while 1 do
+    if i>0 then i=i-1;
+    else return; end;
+  end;
+end;
+
+function g(i)
+  while 1 do
+    if i>0 then i=i-1
+    else return end
+  end
+end
+
+f(10); g(10);
+
+do
+  function f () return 1,2,3; end
+  local a, b, c = f();
+  assert(a==1 and b==2 and c==3)
+  a, b, c = (f());
+  assert(a==1 and b==nil and c==nil)
+end
+
+local a,b = 3 and f();
+assert(a==1 and b==nil)
+
+function g() f(); return; end;
+assert(g() == nil)
+function g() return nil or f() end
+a,b = g()
+assert(a==1 and b==nil)
+
+print'+';
+
+
+f = [[
+return function ( a , b , c , d , e )
+  local x = a >= b or c or ( d and e ) or nil
+  return x
+end , { a = 1 , b = 2 >= 1 , } or { 1 };
+]]
+f = string.gsub(f, "%s+", "\n");   -- force a SETLINE between opcodes
+f,a = load(f)();
+assert(a.a == 1 and a.b)
+
+function g (a,b,c,d,e)
+  if not (a>=b or c or d and e or nil) then return 0; else return 1; end;
+end
+
+function h (a,b,c,d,e)
+  while (a>=b or c or (d and e) or nil) do return 1; end;
+  return 0;
+end;
+
+assert(f(2,1) == true and g(2,1) == 1 and h(2,1) == 1)
+assert(f(1,2,'a') == 'a' and g(1,2,'a') == 1 and h(1,2,'a') == 1)
+assert(f(1,2,'a')
+~=          -- force SETLINE before nil
+nil, "")
+assert(f(1,2,'a') == 'a' and g(1,2,'a') == 1 and h(1,2,'a') == 1)
+assert(f(1,2,nil,1,'x') == 'x' and g(1,2,nil,1,'x') == 1 and
+                                   h(1,2,nil,1,'x') == 1)
+assert(f(1,2,nil,nil,'x') == nil and g(1,2,nil,nil,'x') == 0 and
+                                     h(1,2,nil,nil,'x') == 0)
+assert(f(1,2,nil,1,nil) == nil and g(1,2,nil,1,nil) == 0 and
+                                   h(1,2,nil,1,nil) == 0)
+
+assert(1 and 2<3 == true and 2<3 and 'a'<'b' == true)
+x = 2<3 and not 3; assert(x==false)
+x = 2<1 or (2>1 and 'a'); assert(x=='a')
+
+
+do
+  local a; if nil then a=1; else a=2; end;    -- this nil comes as PUSHNIL 2
+  assert(a==2)
+end
