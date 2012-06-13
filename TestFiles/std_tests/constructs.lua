@@ -204,3 +204,49 @@ end
 
 a,b = F(1)~=nil; assert(a == true and b == nil);
 a,b = F(nil)==nil; assert(a == true and b == nil)
+
+----------------------------------------------------------------
+-- creates all combinations of 
+-- [not] ([not] arg op [not] (arg op [not] arg ))
+-- and tests each one
+
+function ID(x) return x end
+
+function f(t, i)
+  local b = t.n
+  local res = math.fmod(math.floor(i/c), b)+1
+  c = c*b
+  return t[res]
+end
+
+local arg = {" ( 1 < 2 ) ", " ( 1 >= 2 ) ", " F ( ) ", "  nil "; n=4}
+
+local op = {" and ", " or ", " == ", " ~= "; n=4}
+
+local neg = {" ", " not "; n=2}
+
+local i = 0
+repeat
+  c = 1
+  local s = f(neg, i)..'ID('..f(neg, i)..f(arg, i)..f(op, i)..
+            f(neg, i)..'ID('..f(arg, i)..f(op, i)..f(neg, i)..f(arg, i)..'))'
+  local s1 = string.gsub(s, 'ID', '')
+  K,X,NX,WX1,WX2 = nil
+  s = string.format([[
+      local a = %s
+      local b = not %s
+      K = b
+      local xxx; 
+      if %s then X = a  else X = b end
+      if %s then NX = b  else NX = a end
+      while %s do WX1 = a; break end
+      while %s do WX2 = a; break end
+      repeat if (%s) then break end; assert(b)  until not(%s)
+  ]], s1, s, s1, s, s1, s, s1, s, s)
+  assert(load(s))()
+  assert(X and not NX and not WX1 == K and not WX2 == K)
+  if math.fmod(i,4000) == 0 then print('+') end
+  i = i+1
+until i==c
+
+print '+'

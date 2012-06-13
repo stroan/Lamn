@@ -36,7 +36,7 @@ namespace Lamn
 			Compiler.Compiler compiler = new Compiler.Compiler();
 			VirtualMachine.Function compiledFunctions = compiler.CompileAST(outpu2);
 
-			Function.Print(compiledFunctions, LamnState.OutStream);
+			//Function.Print(compiledFunctions, LamnState.OutStream);
 
 			return new VirtualMachine.Closure(compiledFunctions, new VirtualMachine.StackCell[0]);
 		}

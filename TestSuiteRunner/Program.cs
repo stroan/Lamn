@@ -21,6 +21,7 @@ namespace TestSuiteRunner
 				LamnEngine l = new LamnEngine();
 				StringWriter outputBuff = new StringWriter();
 				l.OutputStream = outputBuff;
+				l.OutputStream = System.Console.Out;
 
 				try
 				{
@@ -40,7 +41,7 @@ namespace TestSuiteRunner
 		static List<String> getTestFiles()
 		{
 			List<String> tests = new List<String>();
-			tests.AddRange(Directory.GetFiles("../../../TestFiles", "*.lua", SearchOption.AllDirectories));
+			tests.AddRange(Directory.GetFiles("../../../TestFiles", "constructs.lua", SearchOption.AllDirectories));
 			return tests;
 		}
 	}

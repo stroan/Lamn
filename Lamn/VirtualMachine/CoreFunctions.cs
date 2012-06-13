@@ -187,6 +187,7 @@ namespace Lamn.VirtualMachine
 			Table stringTable = new Table();
 			stringTable.RawPut("len", new State.NativeFuncDelegate(StrLen));
 			stringTable.RawPut("gsub", new State.NativeFuncDelegate(StrGSub));
+			stringTable.RawPut("format", new State.NativeFuncDelegate(StrFmt));
 
 			return stringTable;
 		}
@@ -227,6 +228,24 @@ namespace Lamn.VirtualMachine
 			VarArgs returnArgs = new VarArgs();
 			returnArgs.PushArg(retStr);
 			return returnArgs;
+		}
+		
+		private static VarArgs StrFmt(VarArgs args, LamnEngine s) 
+		{
+			String currentString = (String)args.PopArg();
+			while(true) 
+			{
+				int index = currentString.IndexOf("%s");
+				if (index < 0) {
+					break;
+				}
+				
+				String replace = (String)args.PopArg();
+				currentString = currentString.Substring(0,index) + replace + currentString.Substring(index + 2);
+			}
+			VarArgs retArgs = new VarArgs();
+			retArgs.PushArg(currentString);
+			return retArgs;
 		}
 		#endregion
 		
@@ -294,6 +313,8 @@ namespace Lamn.VirtualMachine
 		{
 			Table mathTable = new Table();
 			mathTable.RawPut("sin", new State.NativeFuncDelegate(Sin));
+			mathTable.RawPut("fmod", new State.NativeFuncDelegate(FMod));
+			mathTable.RawPut("floor", new State.NativeFuncDelegate(Floor));
 
 			return mathTable;
 		}
@@ -306,6 +327,31 @@ namespace Lamn.VirtualMachine
 			VarArgs returnArgs = new VarArgs();
 			returnArgs.PushArg(Math.Sin(d));
 			return returnArgs;
+		}
+		
+		private static VarArgs FMod(VarArgs args, LamnEngine s)
+		{
+			VarArgs args2 = ToNumber(args, s);
+			Double d1 = (Double)args2.PopArg();
+			args2 = ToNumber(args, s);
+			Double d2 = (Double)args2.PopArg();
+			
+			int div = (int)(d1 / d2);
+			Double rem = d1 - (d2 * div);
+			
+			VarArgs retArgs = new VarArgs();
+			retArgs.PushArg(rem);
+			return retArgs;
+		}
+		
+		private static VarArgs Floor(VarArgs args, LamnEngine s)
+		{
+			args = ToNumber(args, s);
+			Double d = (Double)args.PopArg();
+			
+			VarArgs retArgs = new VarArgs();
+			retArgs.PushArg(Math.Floor(d));
+			return retArgs;
 		}
 		#endregion
 	}
