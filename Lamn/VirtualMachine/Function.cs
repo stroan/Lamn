@@ -10,14 +10,20 @@ namespace Lamn.VirtualMachine
 		public UInt32[] Bytecodes { get; private set; }
 		public Object[] Constants { get; private set; }
 		public String Id { get; private set; }
+		
+		public String Name { get; private set; }
+		public Dictionary<int, Lamn.Compiler.Lexer.Position> Positions { get; private set; }
 
 		public Dictionary<String, Function> ChildFunctions { get; private set; }
 
-		public Function(UInt32[] bytecodes, Object[] constants, String id, List<Function> children)
+		public Function(UInt32[] bytecodes, Object[] constants, String id, List<Function> children,
+		                Dictionary<int, Lamn.Compiler.Lexer.Position> positions, String name)
 		{
 			Bytecodes = bytecodes;
 			Constants = constants;
 			Id = id;
+			Positions = positions;
+			Name = name;
 
 			ChildFunctions = new Dictionary<string, Function>();
 			foreach (Function child in children)
@@ -26,12 +32,12 @@ namespace Lamn.VirtualMachine
 			}
 		}
 
-		public void Print(System.IO.TextWriter writer)
+		public static void Print(Function f, System.IO.TextWriter writer)
 		{
-			writer.WriteLine("Function " + Id);
-			for (int i = 0; i < Bytecodes.Length; i++)
+			writer.WriteLine("Function " + f.Id + "(" + f.Name + ")");
+			for (int i = 0; i < f.Bytecodes.Length; i++)
 			{
-				UInt32 instruction = Bytecodes[i];
+				UInt32 instruction = f.Bytecodes[i];
 
 				String name;
 				UInt32 opCode = instruction & OpCodes.OPCODE_MASK;
@@ -139,18 +145,25 @@ namespace Lamn.VirtualMachine
 
 				UInt32 op1 = (instruction & OpCodes.OP1_MASK) >> OpCodes.OP1_SHIFT;
 				UInt32 op2 = (instruction & OpCodes.OP2_MASK) >> OpCodes.OP2_SHIFT;
-
-				writer.WriteLine(String.Format("0x{0:x4} {1,10} {2:x} {3:x}", new Object[] { i, name, op1, op2 }));
+				
+				
+				writer.Write(String.Format("0x{0:x4} {1,10} {2:x} {3:x}", new Object[] { i, name, op1, op2 }));
+				if (f.Positions.ContainsKey(i)) 
+				{
+					writer.Write ("\tL:" + f.Positions[i].LineNumber + 
+					              "  C:" + f.Positions[i].ColumnNumber);					
+				}
+				writer.WriteLine();
 			}
 			writer.WriteLine("");
 
-			writer.WriteLine(String.Format("Constants: {0:d}", Constants.Length));
-			for (int i = 0; i < Constants.Length; i++)
+			writer.WriteLine(String.Format("Constants: {0:d}", f.Constants.Length));
+			for (int i = 0; i < f.Constants.Length; i++)
 			{
 				String constantStr = "null";
-				if (Constants[i] != null)
+				if (f.Constants[i] != null)
 				{
-					constantStr = Constants[i].ToString();
+					constantStr = f.Constants[i].ToString();
 				}
 				writer.WriteLine(String.Format("{0:d}: {1,-5}", i, constantStr));
 			}
@@ -158,9 +171,9 @@ namespace Lamn.VirtualMachine
 			writer.WriteLine("");
 			writer.WriteLine("");
 
-			foreach (Function child in ChildFunctions.Values)
+			foreach (Function child in f.ChildFunctions.Values)
 			{
-				child.Print(writer);
+				Print(child, writer);
 			}
 		}
 	}

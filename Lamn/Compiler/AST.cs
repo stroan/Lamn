@@ -53,7 +53,7 @@ namespace Lamn.Compiler
 		}
 
 		public abstract class Statement {
-			public Lexer.Position SourcePos { get; protected set; }
+			public Lexer.Position SourcePos { get; set; }
 
 			public abstract void Visit(StatementVisitor visitor);
 		}

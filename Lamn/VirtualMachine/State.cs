@@ -12,6 +12,7 @@ namespace Lamn.VirtualMachine
 		public LamnEngine Engine { get; private set; }
 
 		public ThreadState CurrentThread { get { return ThreadStack.Peek(); } }
+		public Stack<ThreadState> ThreadStack { get; private set; }
 		public InstructionPointer CurrentIP { 
 			get { 
 				return CurrentThread.CurrentInstruction; 
@@ -21,7 +22,6 @@ namespace Lamn.VirtualMachine
 			} 
 		}
 
-		public Stack<ThreadState> ThreadStack { get; private set; }
 
 		private Dictionary<Object, Object> GlobalTable { get; set; }
 
@@ -171,6 +171,27 @@ namespace Lamn.VirtualMachine
 		{
 			GlobalTable[name] = func;
 		}
+		
+		#region Debug functions
+		public List<ReturnPoint> GetStackTrace()
+		{
+			List<ReturnPoint> trace = new List<ReturnPoint>();
+			trace.Add (new ReturnPoint(CurrentIP, 0));
+			ThreadState s = CurrentThread;
+			int basePos = s.BasePosition;
+			while (basePos > 1) 
+			{
+				Object retPoint = s.Stack[basePos - 1].contents;
+				if (retPoint is ReturnPoint) {
+					trace.Add ((ReturnPoint)retPoint);
+					basePos = (int)s.Stack[basePos].contents;
+				} else {
+					break;
+				}
+			}
+			return trace;
+		}
+		#endregion
 
 		#region Thread management functions
 		public void ResumeThread(Thread t, VarArgs args)

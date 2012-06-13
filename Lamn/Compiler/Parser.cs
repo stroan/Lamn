@@ -187,47 +187,53 @@ namespace Lamn.Compiler
 
 		private AST.Statement ParseStatement()
 		{
+			Lexer.Position position = Stream.Head.FilePosition;
+			AST.Statement statement = null;
+			
 			if (Stream.IsKeyword("if"))
 			{
-				return ParseIfStatement();
+				statement = ParseIfStatement();
 			}
 			else if (Stream.IsKeyword("while"))
 			{
-				return ParseWhileStatement();
+				statement = ParseWhileStatement();
 			}
 			else if (Stream.IsKeyword("local"))
 			{
-				return ParseLocalStatement();
+				statement = ParseLocalStatement();
 			}
 			else if (Stream.IsKeyword("do"))
 			{
-				return ParseDoStatement();
+				statement = ParseDoStatement();
 			}
 			else if (Stream.IsKeyword("for"))
 			{
-				return ParseForStatement();
+				statement = ParseForStatement();
 			}
 			else if (Stream.IsKeyword("repeat"))
 			{
-				return ParseRepeatStatement();
+				statement = ParseRepeatStatement();
 			}
 			else if (Stream.IsKeyword("function"))
 			{
-				return ParseFunctionStatement();
+				statement = ParseFunctionStatement();
 			}
 			else if (Stream.IsKeyword("return"))
 			{
-				return ParseReturnStatement();
+				statement = ParseReturnStatement();
 			}
 			else if (Stream.IsKeyword("break"))
 			{
 				Stream.MoveNext();
-				return new AST.BreakStatement();
+				statement = new AST.BreakStatement();
 			}
 			else
 			{
-				return ParseExpressionStatement();
+				statement = ParseExpressionStatement();
 			}
+			
+			statement.SourcePos = position;
+			return statement;
 		}
 
 		/* ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END */

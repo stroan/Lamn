@@ -23,6 +23,8 @@ namespace Lamn.Compiler
 			}
 
 			State.stackPosition = 1;
+			
+			CompilerState.SavedState savedState = State.SaveState();
 
 			List<String> paramList = body.ParamList.NamedParams;
 			if (selfFunction)
@@ -55,7 +57,7 @@ namespace Lamn.Compiler
 				State.stackVars["..."] = 0;
 			}
 
-			new ChunkCompiler(body.Chunk, State, null, true);
+			new ChunkCompiler(body.Chunk, State, savedState, true);
 			State.ResolveJumps();
 
 			Id = Guid.NewGuid().ToString();

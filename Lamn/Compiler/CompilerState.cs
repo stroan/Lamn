@@ -24,6 +24,8 @@ namespace Lamn.Compiler
 
 		public String currentBreakLabel;
 		public SavedState currentBreakState;
+		
+		public Dictionary<int, Lexer.Position> positions = new Dictionary<int, Lexer.Position>();
 
 		public void ResolveJumps()
 		{

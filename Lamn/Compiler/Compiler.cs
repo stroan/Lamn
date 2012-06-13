@@ -11,7 +11,8 @@ namespace Lamn.Compiler
 		{
 			ChunkCompiler chunkCompiler = new ChunkCompiler(ast.Contents, new CompilerState(), null, true);
 			chunkCompiler.State.ResolveJumps();
-			return new VirtualMachine.Function(chunkCompiler.State.bytecodes.ToArray(), chunkCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), chunkCompiler.State.childFunctions);
+			return new VirtualMachine.Function(chunkCompiler.State.bytecodes.ToArray(), chunkCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), 
+			                                   chunkCompiler.State.childFunctions, chunkCompiler.State.positions, "root");
 		}
 	}
 }

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Lamn.VirtualMachine
 {
-	class ReturnPoint
+	public class ReturnPoint
 	{
 		public InstructionPointer instructionPointer;
 		public int popArgs;

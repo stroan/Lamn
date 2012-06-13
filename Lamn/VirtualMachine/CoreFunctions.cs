@@ -23,6 +23,8 @@ namespace Lamn.VirtualMachine
 			s.PutGlobal("pcall", new State.NativeCoreFuncDelegate(PCall));
 
 			s.PutGlobal("load", new State.NativeFuncDelegate(LoadString));
+			
+			s.PutGlobal("require", new State.NativeFuncDelegate(Require));
 
 			s.PutGlobal("coroutine", GetCoroutineTable());
 			s.PutGlobal("string", GetStringTable());
@@ -166,6 +168,17 @@ namespace Lamn.VirtualMachine
 			retArgs.PushArg(s.CompileString((String)input.PopArg()));
 			return retArgs;
 		}
+		
+		static VarArgs Require(VarArgs input, LamnEngine s)
+		{
+			VarArgs retArgs = new VarArgs();
+			String arg = (String)input.PopArg();
+			if (arg.Equals("debug")) 
+			{
+				retArgs.PushArg(GetDebugTable ());
+			}
+			return retArgs;
+		}
 		#endregion
 
 		#region String functions
@@ -216,6 +229,30 @@ namespace Lamn.VirtualMachine
 			return returnArgs;
 		}
 		#endregion
+		
+		#region debug functions
+		private static Table GetDebugTable()
+		{
+			Table debugTable = new Table();
+			debugTable.RawPut ("getinfo", new State.NativeFuncDelegate(DebugGetInfo));
+			return debugTable;
+		}
+		
+		private static VarArgs DebugGetInfo(VarArgs args, LamnEngine s)
+		{
+			VarArgs retArgs = new VarArgs();
+			List<ReturnPoint> stack = s.LamnState.GetStackTrace();
+			int func = (int)((double)args.PopArg() - 1);
+			String spec = (String)args.PopArg();
+			if (spec.Equals("n") && func < stack.Count) {
+				Table t = new Table();
+				ReturnPoint retPoint = stack[func];
+				t.RawPut("name", retPoint.instructionPointer.CurrentFunction.Name);
+				retArgs.PushArg(t);
+			}
+			return retArgs;	
+		}
+		#endregion
 
 		#region coroutine functions
 		private static Table GetCoroutineTable()
@@ -230,7 +267,7 @@ namespace Lamn.VirtualMachine
 
 		private static VarArgs CoroutineCreate(VarArgs args, LamnEngine s)
 		{
-			Thread t = new Thread((Closure)args.PopArg());
+			Thread t = new Thread((Closure)args.PopArg(), 512);
 			t.State.PushStack(new YieldPoint());
 			t.State.PushStack(0);
 			t.State.BasePosition = 1;

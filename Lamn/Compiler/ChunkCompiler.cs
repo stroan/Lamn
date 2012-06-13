@@ -26,6 +26,7 @@ namespace Lamn.Compiler
 
 			foreach (AST.Statement statement in chunk.Statements)
 			{
+				state.positions[state.bytecodes.Count] = statement.SourcePos;
 				statement.Visit(this);
 			}
 
@@ -72,7 +73,8 @@ namespace Lamn.Compiler
 			
 			FunctionCompiler funcCompiler = new FunctionCompiler(State, statement.Body, false);
 
-			VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
+			VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), 
+			                                                               funcCompiler.State.childFunctions, funcCompiler.State.positions, statement.Name);
 			State.childFunctions.Add(function);
 
 			State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id)));
@@ -457,7 +459,7 @@ namespace Lamn.Compiler
 
 		public void Visit(AST.BreakStatement statement)
 		{
-			State.RestoreState(State.currentBreakState);
+			State.Cleanup(State.currentBreakState);
 
 			State.bytecodes.Add(VirtualMachine.OpCodes.JMP);
 			State.jumps.Add(new KeyValuePair<String, int>(State.currentBreakLabel, State.bytecodes.Count - 1));
@@ -501,7 +503,8 @@ namespace Lamn.Compiler
 
 			FunctionCompiler funcCompiler = new FunctionCompiler(State, statement.Body, isSelfFunction);
 
-			VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
+			VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), 
+			                                                               funcCompiler.State.childFunctions, funcCompiler.State.positions, statement.MainName);
 			State.childFunctions.Add(function);
 
 			State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id))); State.stackPosition++;

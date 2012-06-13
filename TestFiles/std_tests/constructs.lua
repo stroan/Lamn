@@ -1,6 +1,6 @@
 ;;print "testing syntax";;
 
--- local debug = require "debug"
+local debug = require "debug"
 
 -- testing semicollons
 do ;;; end
@@ -196,3 +196,11 @@ do
   local a; if nil then a=1; else a=2; end;    -- this nil comes as PUSHNIL 2
   assert(a==2)
 end
+
+function F(a)
+  assert(debug.getinfo(1, "n").name == 'F')
+  return a,2,3
+end
+
+a,b = F(1)~=nil; assert(a == true and b == nil);
+a,b = F(nil)==nil; assert(a == true and b == nil)

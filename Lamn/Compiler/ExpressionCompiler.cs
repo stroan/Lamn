@@ -216,7 +216,8 @@ namespace Lamn.Compiler
 		{
 			FunctionCompiler funcCompiler = new FunctionCompiler(State, expression.Body, false);
 
-			VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), funcCompiler.State.childFunctions);
+			VirtualMachine.Function function = new VirtualMachine.Function(funcCompiler.State.bytecodes.ToArray(), funcCompiler.State.constants.ToArray(), Guid.NewGuid().ToString(), 
+			                                                               funcCompiler.State.childFunctions, funcCompiler.State.positions, "anon");
 			State.childFunctions.Add(function);
 
 			State.bytecodes.Add(VirtualMachine.OpCodes.MakeCLOSURE(State.AddConstant(function.Id)));
